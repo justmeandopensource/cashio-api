@@ -2,9 +2,9 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from routers import user_router, system_router
+from routers import user_router, ledger_router, system_router
 from database.connection import Base, engine
-from models.user_model import User
+from models import model
 from repositories.settings import settings
 from version import __version__
 
@@ -26,6 +26,7 @@ app.add_middleware(
 )
 
 app.include_router(user_router.user_Router)
+app.include_router(ledger_router.ledger_Router)
 app.include_router(system_router.system_Router)
 
 if __name__ == "__main__":
