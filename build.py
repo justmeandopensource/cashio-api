@@ -33,7 +33,7 @@ class LocalBuilder:
         """Build Docker image with version tag."""
         
         # Create tags for the image
-        version_tag = f"{self.docker_image_name}:{version}"
+        version_tag = f"{self.docker_image_name}:v{version}"
         latest_tag = f"{self.docker_image_name}:latest"
         
         # Build the Docker image
