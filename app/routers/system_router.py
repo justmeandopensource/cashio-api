@@ -10,3 +10,4 @@ async def get_sysinfo():
         "api_version": __version__,
         "python_version": platform.python_version(),
     }
+

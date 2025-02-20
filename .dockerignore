@@ -1,4 +1,6 @@
 venv
+.venv
+.env
 cashio.db
 **/__pycache__/
 .vscode/
