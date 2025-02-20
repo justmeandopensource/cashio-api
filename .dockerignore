@@ -1,0 +1,9 @@
+venv
+cashio.db
+**/__pycache__/
+.vscode/
+.idea/
+.git
+.gitignore
+dist/
+build/

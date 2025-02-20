@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import subprocess
-from datetime import datetime
 
 class LocalBuilder:
     def __init__(self):
@@ -19,11 +18,11 @@ class LocalBuilder:
     def get_new_version(self) -> str:
         """Get the new version using semantic-release."""
         # Run version to update version files and create git tag
-        subprocess.run(["semantic-release", "version"], check=True)
+        subprocess.run(["semantic-release", "version", "--no-changelog", "--no-push"], check=True)
         
         # Get the current version
         result = subprocess.run(
-            ["semantic-release", "print-version", "--current"],
+            ["semantic-release", "version", "--print"],
             capture_output=True,
             text=True,
             check=True
@@ -32,25 +31,21 @@ class LocalBuilder:
 
     def build_docker_image(self, version: str):
         """Build Docker image with version tag."""
-        git_hash = self.get_current_git_hash()
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
         # Create tags for the image
         version_tag = f"{self.docker_image_name}:{version}"
         latest_tag = f"{self.docker_image_name}:latest"
-        dev_tag = f"{self.docker_image_name}:dev-{timestamp}-{git_hash}"
         
         # Build the Docker image
-        print(f"Building Docker image with tags: {version_tag}, {latest_tag}, {dev_tag}")
+        print(f"Building Docker image with tags: {version_tag}, {latest_tag}")
         subprocess.run([
             "docker", "build",
             "-t", version_tag,
             "-t", latest_tag,
-            "-t", dev_tag,
             "."
         ], check=True)
         
-        return version_tag, latest_tag, dev_tag
+        return version_tag, latest_tag
 
     def run(self):
         """Main execution method."""
@@ -60,11 +55,10 @@ class LocalBuilder:
             print(f"New version determined by semantic-release: {version}")
             
             # Build Docker image
-            version_tag, latest_tag, dev_tag = self.build_docker_image(version)
+            version_tag, latest_tag = self.build_docker_image(version)
             print("\nSuccessfully built Docker images with tags:")
             print(f"- {version_tag}")
             print(f"- {latest_tag}")
-            print(f"- {dev_tag}")
             
         except subprocess.CalledProcessError as e:
             print(f"Error during build process: {e}")
