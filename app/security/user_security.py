@@ -1,13 +1,12 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from models.user_model import User
-from repositories import user_crud
 from sqlalchemy.orm import Session
-from schemas import user_schema
-from database.connection import get_db
 from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+from repositories import user_crud
+from schemas import user_schema
+from database.connection import get_db
 
 SECRET_KEY = "098166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
 ALGORITHM = "HS256"
