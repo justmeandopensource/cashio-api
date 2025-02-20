@@ -1,10 +1,12 @@
 from pydantic import BaseModel
 
-class Ledger(BaseModel):
-    ledger_id: int
-    user_id: int
+class LedgerCreate(BaseModel):
     name: str
     currency_symbol: str
+
+class Ledger(LedgerCreate):
+    user_id: int
+    ledger_id: int
 
     class Config:
         from_attributes = True

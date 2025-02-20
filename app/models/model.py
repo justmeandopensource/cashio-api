@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, UniqueConstraint
+
 from sqlalchemy.orm import relationship
 from database.connection import Base
 
@@ -24,3 +25,7 @@ class Ledger(Base):
     currency_symbol = Column(String(10), nullable=False)
 
     user = relationship("User", back_populates="ledgers")
+
+    __table_args__ = (
+        UniqueConstraint('user_id', 'name', name='uq_user_ledger_name'),
+    )
