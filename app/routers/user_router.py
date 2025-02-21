@@ -29,7 +29,14 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
     return {"access_token": access_token, "token_type": "bearer"}
 
 @user_Router.post("/verify-token", tags=["users"])
-async def verify_user_token(token: str = Depends(oauth2_scheme)):
-    verify_token(token=token)
-    return {"message": "token is valid"}
-
+async def verify_user_token(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    try:
+        verify_token(token=token, db=db)
+        return {"message": "token is valid"}
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred while verifying the token.",
+        )
