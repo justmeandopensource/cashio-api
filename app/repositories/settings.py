@@ -7,7 +7,14 @@ class Settings(BaseSettings):
     API_HOST: str = "0.0.0.0"
     API_PORT: int = 8000
 
-    SQLALCHEMY_DATABASE_URL: str = "sqlite:///./cashio.db"
+    # database
+    POSTGRES_USER: str = "test"
+    POSTGRES_PASSWORD: str = "test"
+    POSTGRES_DB: str = "test"
+    POSTGRES_HOST: str = "host"
+    POSTGRES_PORT: int = 5432
+
+    SQLALCHEMY_DATABASE_URL: str = "postgresql://test:test@host:5432/db"
 
     # frontend url to allow access to the api
     CASHIO_UI_URL: str ="http://localhost:5173"
