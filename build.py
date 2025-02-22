@@ -5,16 +5,6 @@ class LocalBuilder:
     def __init__(self):
         self.docker_image_name = "cashio-api"
 
-    def get_current_git_hash(self) -> str:
-        """Get the current git commit hash."""
-        result = subprocess.run(
-            ["git", "rev-parse", "--short", "HEAD"],
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        return result.stdout.strip()
-
     def get_new_version(self) -> str:
         """Get the new version using semantic-release."""
         # Run version to update version files and create git tag
