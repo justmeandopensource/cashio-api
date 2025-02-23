@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from datetime import datetime
 
 class LedgerCreate(BaseModel, str_strip_whitespace=True):
     name: str
@@ -7,6 +8,8 @@ class LedgerCreate(BaseModel, str_strip_whitespace=True):
 class Ledger(LedgerCreate, str_strip_whitespace=True):
     user_id: int
     ledger_id: int
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True

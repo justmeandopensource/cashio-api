@@ -13,6 +13,7 @@ class User(UserBase, str_strip_whitespace=True):
     user_id: int
     username: str
     created_at: datetime
+    updated_at: datetime
     class Config:
         from_attributes = True
 
