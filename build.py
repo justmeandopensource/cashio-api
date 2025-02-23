@@ -8,7 +8,7 @@ class LocalBuilder:
     def get_new_version(self) -> str:
         """Get the new version using semantic-release."""
         # Run version to update version files and create git tag
-        subprocess.run(["semantic-release", "version", "--no-changelog"], check=True)
+        subprocess.run(["semantic-release", "version", "--no-changelog", "--no-vcs-release"], check=True)
         
         # Get the current version
         result = subprocess.run(
