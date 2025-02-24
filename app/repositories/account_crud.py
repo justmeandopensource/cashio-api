@@ -37,6 +37,7 @@ def create_account(db: Session, ledger_id: int, account: AccountCreate):
         type=account.type,
         is_group=account.is_group,
         opening_balance=account.opening_balance,
+        net_balance=account.opening_balance,
         parent_account_id=account.parent_account_id,
         created_at=datetime.now(timezone.utc),
         updated_at=datetime.now(timezone.utc)

@@ -17,6 +17,7 @@ class Account(AccountCreate, str_strip_whitespace=True):
     account_id: int
     ledger_id: int
     balance: float
+    net_balance: Optional[float] = None
     created_at: datetime
     updated_at: datetime
 

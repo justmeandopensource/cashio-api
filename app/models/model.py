@@ -56,6 +56,7 @@ class Account(Base):
     is_group = Column(Boolean, default=False, nullable=False)
     opening_balance = Column(Numeric(15, 2), default=0.00, nullable=False)
     balance = Column(Numeric(15, 2), default=0.00, nullable=False)
+    net_balance = Column(Numeric(15, 2), default=0.00, nullable=False)
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=datetime.now(timezone.utc))
 
