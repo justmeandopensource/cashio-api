@@ -51,6 +51,9 @@ def create_account(db: Session, ledger_id: int, account: AccountCreate):
 def get_accounts_by_ledger_id(db: Session, ledger_id: int):
     return db.query(Account).filter(Account.ledger_id == ledger_id).all()
 
+def get_account_by_id(db: Session, account_id: int):
+    return db.query(Account).filter(Account.account_id == account_id).first()
+
 def get_group_accounts_by_type(db: Session, ledger_id: int, account_type: Optional[str] = None):
     query = db.query(Account).filter(
         Account.ledger_id == ledger_id,

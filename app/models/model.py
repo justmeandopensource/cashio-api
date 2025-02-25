@@ -27,6 +27,7 @@ class User(Base):
     updated_at = Column(DateTime, default=datetime.now(timezone.utc))
 
     ledgers = relationship("Ledger", back_populates="user")
+    categories = relationship("Category", back_populates="user")
 
 class Ledger(Base):
     __tablename__ = "ledgers"
@@ -73,11 +74,13 @@ class Category(Base):
     __tablename__ = "categories"
 
     category_id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
     parent_category_id = Column(Integer, ForeignKey('categories.category_id'), nullable=True)
     name = Column(String(100), nullable=False)
     type = Column(Enum('income', 'expense', name='category_type'), nullable=False)
     is_group = Column(Boolean, default=False, nullable=False)
 
+    user = relationship("User", back_populates="categories")
     parent_category = relationship("Category", remote_side=[category_id], back_populates="child_categories")
     child_categories = relationship("Category", back_populates="parent_category")
 
@@ -91,7 +94,8 @@ class Transaction(Base):
     transaction_id = Column(Integer, primary_key=True)
     account_id = Column(Integer, ForeignKey('accounts.account_id'), nullable=False)
     category_id = Column(Integer, ForeignKey('categories.category_id'), nullable=True)
-    amount = Column(Numeric(15, 2), nullable=False)
+    credit = Column(Numeric(15, 2), default=0.00, nullable=False)
+    debit = Column(Numeric(15, 2), default=0.00, nullable=False)
     date = Column(DateTime, nullable=False)
     notes = Column(String(500), nullable=True)
     is_split = Column(Boolean, default=False, nullable=False)
@@ -110,7 +114,8 @@ class TransactionSplit(Base):
     split_id = Column(Integer, primary_key=True)
     transaction_id = Column(Integer, ForeignKey('transactions.transaction_id'), nullable=False)
     category_id = Column(Integer, ForeignKey('categories.category_id'), nullable=False)
-    amount = Column(Numeric(15, 2), nullable=False)
+    credit = Column(Numeric(15, 2), default=0.00, nullable=False)
+    debit = Column(Numeric(15, 2), default=0.00, nullable=False)
     notes = Column(String(500), nullable=True)
 
     transaction = relationship("Transaction", back_populates="splits")
