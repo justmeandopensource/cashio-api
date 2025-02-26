@@ -13,6 +13,11 @@ class AccountCreate(BaseModel, str_strip_whitespace=True):
     opening_balance: Optional[float] = None
     parent_account_id: Optional[int] = None
 
+class AccountUpdate(BaseModel, str_strip_whitespace=True):
+    name: Optional[str] = None
+    opening_balance: Optional[float] = None
+    parent_account_id: Optional[int] = None
+
 class Account(AccountCreate, str_strip_whitespace=True):
     account_id: int
     ledger_id: int

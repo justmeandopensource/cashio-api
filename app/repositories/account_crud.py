@@ -1,8 +1,9 @@
+from decimal import Decimal
 from typing import Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
-from schemas.account_schema import AccountCreate
+from schemas.account_schema import AccountCreate, AccountUpdate
 from models.model import Account
 
 def create_account(db: Session, ledger_id: int, account: AccountCreate):
@@ -77,4 +78,30 @@ def get_group_accounts_by_type(db: Session, ledger_id: int, account_type: Option
     )
     if account_type:
         query = query.filter(Account.type == account_type)
+
     return query.all()
+
+def update_account(db: Session, account_id: int, account_update: AccountUpdate):
+    db_account = db.query(Account).filter(Account.account_id == account_id).first()
+    if not db_account:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
+
+    # Validate parent account
+    if account_update.parent_account_id is not None:
+        parent_account = db.query(Account).filter(Account.account_id == account_update.parent_account_id).first()
+        if not parent_account:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Parent account not found")
+        if not parent_account.is_group:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Parent account must be a group account")
+
+    if account_update.name is not None:
+        db_account.name = account_update.name
+    if account_update.opening_balance is not None:
+        db_account.opening_balance = Decimal(str(account_update.opening_balance))
+        db_account.net_balance = db_account.opening_balance + db_account.balance
+    if account_update.parent_account_id is not None:
+        db_account.parent_account_id = account_update.parent_account_id
+
+    db.commit()
+    db.refresh(db_account)
+    return db_account

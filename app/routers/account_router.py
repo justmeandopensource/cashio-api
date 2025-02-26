@@ -90,3 +90,22 @@ def get_group_accounts_by_type(
 
     group_accounts = account_crud.get_group_accounts_by_type(db=db, ledger_id=ledger_id, account_type=account_type)
     return group_accounts
+
+@account_Router.put("/{ledger_id}/account/{account_id}/update", response_model=account_schema.Account, tags=["accounts"])
+def update_account_details(
+    ledger_id: int,
+    account_id: int,
+    account_update: account_schema.AccountUpdate,
+    user: user_schema.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
+    if not ledger or ledger.user_id != user.user_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ledger not found")
+
+    account = account_crud.get_account_by_id(db=db, account_id=account_id)
+    if not account or account.ledger_id != ledger_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
+
+    updated_account = account_crud.update_account(db=db, account_id=account_id, account_update=account_update)
+    return updated_account
