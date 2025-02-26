@@ -1,9 +1,10 @@
 from typing import Optional
 from decimal import Decimal
+from uuid import uuid4
 from fastapi import HTTPException, status
 from datetime import datetime
 from sqlalchemy.orm import Session, joinedload
-from schemas.transaction_schema import TransactionCreate
+from schemas.transaction_schema import TransactionCreate, TransferCreate
 from models.model import Transaction, TransactionSplit, Account
 
 def get_transactions_for_account_id(db: Session, account_id: int, offset: Optional[int] = 0, limit: Optional[int] = 50):
@@ -32,7 +33,7 @@ def get_transactions_for_account_id(db: Session, account_id: int, offset: Option
             "notes": transaction.notes,
             "is_split": transaction.is_split,
             "is_transfer": transaction.is_transfer,
-            "transfer_id": transaction.transfer_id,
+            "transfer_id": str(transaction.transfer_id),
             "transfer_type": transaction.transfer_type,
             "created_at": transaction.created_at
         }
@@ -51,6 +52,11 @@ def create_transaction(db: Session, transaction: TransactionCreate):
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Account not found"
         )
+    if account.is_group:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Operation can be performed on group accounts"
+        )
 
     credit = Decimal(str(transaction.credit)) if transaction.credit is not None else Decimal('0.00')
     debit = Decimal(str(transaction.debit)) if transaction.debit is not None else Decimal('0.00')
@@ -64,9 +70,9 @@ def create_transaction(db: Session, transaction: TransactionCreate):
         date=transaction.date,
         notes=transaction.notes,
         is_split=transaction.is_split,
-        is_transfer=False,
-        transfer_id=None,
-        transfer_type=None,
+        is_transfer=transaction.is_transfer,
+        transfer_id=transaction.transfer_id,
+        transfer_type=transaction.transfer_type,
         created_at=datetime.now()
     )
     db.add(db_transaction)
@@ -122,3 +128,85 @@ def create_transaction(db: Session, transaction: TransactionCreate):
         db.refresh(db_transaction)
 
     return db_transaction
+
+def create_transfer_transaction(db: Session, transfer: TransferCreate, user_id: int):
+    # Fetch source and destination accounts
+    source_account = db.query(Account).filter(Account.account_id == transfer.source_account_id).first()
+    destination_account = db.query(Account).filter(Account.account_id == transfer.destination_account_id).first()
+
+    # Ensure the source and destination accounts exist
+    if not source_account or not destination_account:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Source or destination account not found"
+        )
+
+    # Ensure accounts belong to the users
+    if source_account.ledger.user_id != user_id or destination_account.ledger.user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Source or destination account does not belong to the user"
+        )
+
+    # Ensure the accounts are not group accounts
+    if source_account.is_group or destination_account.is_group:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Source or destination account is a group account. Operation cannot be performed on group accounts"
+        )
+
+    # Check if the accounts are in the same ledger
+    if source_account.ledger_id == destination_account.ledger_id:
+        # Same ledger, same currency
+        if transfer.destination_amount is not None:
+            raise ValueError("Destination amount should not be provided for same ledger transfers")
+        destination_amount = transfer.source_amount
+    else:
+        # Different ledgers, different currencies
+        if transfer.destination_amount is None:
+            raise ValueError("Destination amount is required for cross-ledger transfers")
+        destination_amount = transfer.destination_amount
+
+    # Ensure amounts are non-zero
+    if transfer.source_amount <= 0 or destination_amount <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Transfer amount is not valid"
+        )
+
+    # Generate a unique transfer_id
+    transfer_id = uuid4()
+
+    # Create expense transaction on source account
+    transferOut = TransactionCreate(
+        account_id=transfer.source_account_id,
+        category_id=None,
+        type="expense",
+        credit=0.00,
+        debit=transfer.source_amount,
+        date=transfer.date,
+        notes=transfer.notes,
+        is_split=False,
+        is_transfer=True,
+        transfer_id=str(transfer_id),
+        transfer_type="source",
+    )
+    create_transaction(db=db, transaction=transferOut)
+
+    # Create income transaction on destination account
+    transferIn = TransactionCreate(
+        account_id=transfer.destination_account_id,
+        category_id=None,
+        type="income",
+        credit=destination_amount,
+        debit=0.00,
+        date=transfer.date,
+        notes=transfer.notes,
+        is_split=False,
+        is_transfer=True,
+        transfer_id=str(transfer_id),
+        transfer_type="destination",
+    )
+    create_transaction(db=db, transaction=transferIn)
+
+    return {"message": "funds transferred successfully"}

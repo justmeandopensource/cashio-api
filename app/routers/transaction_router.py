@@ -4,6 +4,7 @@ from schemas import user_schema, transaction_schema
 from repositories import ledger_crud, transaction_crud
 from database.connection import get_db
 from security.user_security import get_current_user
+from models.model import Account
 
 transaction_Router = APIRouter(prefix="/ledger")
 
@@ -86,3 +87,19 @@ def add_expense_transaction(
 
     # Create the transaction
     return transaction_crud.create_transaction(db, transaction)
+
+@transaction_Router.post("/{ledger_id}/transaction/transfer", response_model=dict, tags=["transactions"])
+def add_transfer_transaction(
+    transfer: transaction_schema.TransferCreate,
+    user: user_schema.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    try:
+        transaction_crud.create_transfer_transaction(db=db, transfer=transfer, user_id=user.user_id)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+    return {"message": "Transfer completed successfully"}

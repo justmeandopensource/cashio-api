@@ -27,6 +27,9 @@ class TransactionCreate(BaseModel):
     debit: float = 0.00
     date: datetime
     notes: Optional[str] = None
+    is_transfer: bool
+    transfer_id: Optional[str]
+    transfer_type: Optional[str]
     is_split: bool = False
     splits: Optional[List[TransactionSplitCreate]] = None
 
@@ -54,4 +57,12 @@ class PaginatedTransactionResponse(BaseModel):
     total_pages: int
     current_page: int
     per_page: int
+
+class TransferCreate(BaseModel):
+    source_account_id: int
+    destination_account_id: int
+    source_amount: float
+    destination_amount: Optional[float] = None
+    date: datetime
+    notes: Optional[str] = None
 
