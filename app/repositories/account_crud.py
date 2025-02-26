@@ -48,8 +48,24 @@ def create_account(db: Session, ledger_id: int, account: AccountCreate):
     db.refresh(db_account)
     return db_account
 
-def get_accounts_by_ledger_id(db: Session, ledger_id: int):
-    return db.query(Account).filter(Account.ledger_id == ledger_id).all()
+def get_accounts_by_ledger_id(
+        db: Session,
+        ledger_id: int,
+        account_type: Optional[str] = None,
+        ignore_group: Optional[bool] = False
+):
+    query = db.query(Account).filter(Account.ledger_id == ledger_id)
+
+    # Filter by account type if provided
+    if account_type:
+        query = query.filter(Account.type == account_type)
+
+    # Exclude group account if ignore_group is True
+    if ignore_group:
+        query = query.filter(Account.is_group == False)
+
+    accounts = query.all()
+    return accounts
 
 def get_account_by_id(db: Session, account_id: int):
     return db.query(Account).filter(Account.account_id == account_id).first()

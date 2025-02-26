@@ -1,5 +1,5 @@
-from typing import Optional
-from fastapi import Depends, APIRouter, HTTPException, status
+from typing import Optional, Literal
+from fastapi import Depends, APIRouter, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from schemas import user_schema, account_schema
 from repositories import ledger_crud, account_crud
@@ -11,6 +11,8 @@ account_Router = APIRouter(prefix="/ledger")
 @account_Router.get("/{ledger_id}/accounts", response_model=list[account_schema.Account], tags=["accounts"])
 def get_ledger_accounts(
     ledger_id: int,
+    type: Optional[Literal['asset', 'liability']] = Query(default=None, description="Filter by account type (asset or liability)"),
+    ignore_group: Optional[bool] = Query(default=False, description="Exclude group accounts if set to true"),
     user: user_schema.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -18,7 +20,12 @@ def get_ledger_accounts(
     if not ledger or ledger.user_id != user.user_id:
         raise HTTPException(status_code=404, detail="Ledger not found")
 
-    accounts = account_crud.get_accounts_by_ledger_id(db=db, ledger_id=ledger_id)
+    accounts = account_crud.get_accounts_by_ledger_id(
+        db=db,
+        ledger_id=ledger_id,
+        account_type=type,
+        ignore_group=ignore_group
+    )
     if not accounts:
         return []
 
