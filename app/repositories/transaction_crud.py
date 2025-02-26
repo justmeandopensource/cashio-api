@@ -79,11 +79,18 @@ def create_transaction(db: Session, transaction: TransactionCreate):
     db.commit()
     db.refresh(db_transaction)
 
-    # Update account balance
-    if transaction.type == "income":
-        account.balance += credit
-    elif transaction.type == "expense":
-        account.balance -= debit
+    # Update account balance based on account type
+    if account.type == "asset":
+        if transaction.type == "income":
+            account.balance += credit
+        elif transaction.type == "expense":
+            account.balance -= debit
+    elif account.type == "liability":
+        if transaction.type == "income":
+            account.balance -= credit
+        elif transaction.type == "expense":
+            account.balance += debit
+
     account.net_balance = account.opening_balance + account.balance
     account.updated_at = datetime.now()
     db.commit()
