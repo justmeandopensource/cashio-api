@@ -118,8 +118,6 @@ def create_transaction(db: Session, transaction: TransactionCreate):
                 detail=f"Sum of split debits ({total_split_debit}) does not match main transaction debit ({debit})"
             )
 
-    # Add splits after validation
-    if transaction.is_split and transaction.splits:
         for split in transaction.splits:
             split_credit = Decimal(str(split.credit)) if split.credit is not None else Decimal('0.00')
             split_debit = Decimal(str(split.debit)) if split.debit is not None else Decimal('0.00')

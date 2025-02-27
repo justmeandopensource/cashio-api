@@ -9,7 +9,8 @@ from sqlalchemy import (
     Boolean,
     UUID,
     ForeignKey,
-    UniqueConstraint
+    UniqueConstraint,
+    Index
 )
 
 from sqlalchemy.orm import relationship
@@ -110,6 +111,13 @@ class Transaction(Base):
     splits = relationship("TransactionSplit", back_populates="transaction", cascade="all, delete-orphan")
     tags = relationship("Tag", secondary="transaction_tags", back_populates="transactions")
 
+    __table_args__ = (
+        Index('idx_transactions_account_id', 'account_id'),
+        Index('idx_transactions_category_id', 'category_id'),
+        Index('idx_transactions_date', 'date'),
+        Index('idx_transactions_account_id_date', 'account_id', 'date')
+    )
+
 class TransactionSplit(Base):
     __tablename__ = "transaction_splits"
 
@@ -129,10 +137,6 @@ class Tag(Base):
     tag_id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
     name = Column(String(50), nullable=False)
-    description = Column(String(200), nullable=True)
-    color = Column(String(7), nullable=True)  # Hex color code (e.g., #FF5733)
-    created_at = Column(DateTime, default=datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="tags")
     
@@ -152,8 +156,10 @@ class TransactionTag(Base):
     id = Column(Integer, primary_key=True)
     transaction_id = Column(Integer, ForeignKey('transactions.transaction_id', ondelete='CASCADE'), nullable=False)
     tag_id = Column(Integer, ForeignKey('tags.tag_id', ondelete='CASCADE'), nullable=False)
-    created_at = Column(DateTime, default=datetime.now(timezone.utc))
 
     __table_args__ = (
         UniqueConstraint('transaction_id', 'tag_id', name='uq_transaction_tag'),
+        Index('idx_transaction_tags_transaction_id', 'transaction_id'),
+        Index('idx_transaction_tags_tag_id', 'tag_id'),
+        Index('idx_transaction_tags_transaction_id_tag_id', 'transaction_id', 'tag_id')
     )
