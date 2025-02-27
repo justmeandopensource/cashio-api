@@ -65,6 +65,8 @@ def get_accounts_by_ledger_id(
     if ignore_group:
         query = query.filter(Account.is_group == False)
 
+    query = query.order_by(Account.name.asc())
+
     accounts = query.all()
     return accounts
 
