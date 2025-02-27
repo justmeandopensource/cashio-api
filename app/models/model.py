@@ -37,7 +37,9 @@ class Ledger(Base):
     ledger_id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
     name = Column(String(100), nullable=False)
+    description = Column(String(100), nullable=True)
     currency_symbol = Column(String(10), nullable=False)
+    notes = Column(String(500), nullable=True)
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=datetime.now(timezone.utc))
 
@@ -55,11 +57,13 @@ class Account(Base):
     ledger_id = Column(Integer, ForeignKey('ledgers.ledger_id'), nullable=False)
     parent_account_id = Column(Integer, ForeignKey('accounts.account_id'), nullable=True)
     name = Column(String(100), nullable=False)
+    description = Column(String(100), nullable=True)
     type = Column(Enum('asset', 'liability', name='account_type'), nullable=False)
     is_group = Column(Boolean, default=False, nullable=False)
     opening_balance = Column(Numeric(15, 2), default=0.00, nullable=False)
     balance = Column(Numeric(15, 2), default=0.00, nullable=False)
     net_balance = Column(Numeric(15, 2), default=0.00, nullable=False)
+    notes = Column(String(500), nullable=True)
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=datetime.now(timezone.utc))
 
