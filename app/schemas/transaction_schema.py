@@ -1,6 +1,7 @@
 from typing import List, Optional, Literal
 from pydantic import BaseModel
 from datetime import datetime
+from app.schemas.tag_schema import Tag, TagCreate
 
 class TransactionSplitCreate(BaseModel):
     category_id: int
@@ -32,6 +33,7 @@ class TransactionCreate(BaseModel):
     transfer_type: Optional[str]
     is_split: bool = False
     splits: Optional[List[TransactionSplitCreate]] = None
+    tags: Optional[List[TagCreate]] = None
 
 class Transaction(BaseModel, str_strip_whitespace=True):
     transaction_id: int
@@ -47,6 +49,7 @@ class Transaction(BaseModel, str_strip_whitespace=True):
     transfer_id: Optional[str]
     transfer_type: Optional[str]
     created_at: datetime
+    tags: Optional[List[Tag]] = None
 
     class Config:
         from_attributes = True
@@ -65,4 +68,5 @@ class TransferCreate(BaseModel):
     destination_amount: Optional[float] = None
     date: datetime
     notes: Optional[str] = None
+    tags: Optional[List[TagCreate]] = None
 

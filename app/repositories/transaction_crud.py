@@ -1,15 +1,15 @@
-from typing import Optional
+from typing import Optional, List
 from decimal import Decimal
 from uuid import uuid4
 from fastapi import HTTPException, status
 from datetime import datetime
 from sqlalchemy.orm import Session, joinedload
 from app.schemas.transaction_schema import TransactionCreate, TransferCreate
-from app.models.model import Transaction, TransactionSplit, Account
+from app.models.model import Transaction, TransactionSplit, Account, Tag, TransactionTag
 
 def get_transactions_for_account_id(db: Session, account_id: int, offset: Optional[int] = 0, limit: Optional[int] = 50):
     transactions = db.query(Transaction)\
-        .options(joinedload(Transaction.category))\
+        .options(joinedload(Transaction.category), joinedload(Transaction.tags))\
         .filter(Transaction.account_id == account_id)\
         .order_by(Transaction.date.desc())\
         .offset(offset)\
@@ -35,7 +35,8 @@ def get_transactions_for_account_id(db: Session, account_id: int, offset: Option
             "is_transfer": transaction.is_transfer,
             "transfer_id": str(transaction.transfer_id),
             "transfer_type": transaction.transfer_type,
-            "created_at": transaction.created_at
+            "created_at": transaction.created_at,
+            "tags": [{"tag_id": tag.tag_id, "name": tag.name} for tag in transaction.tags]
         }
         formatted_transactions.append(formatted_transaction)
 
@@ -132,6 +133,25 @@ def create_transaction(db: Session, transaction: TransactionCreate):
         db.commit()
         db.refresh(db_transaction)
 
+    if transaction.tags:
+        for tag in transaction.tags:
+            db_tag = db.query(Tag).filter(Tag.name == tag.name, Tag.user_id == account.ledger.user_id).first()
+            if not db_tag:
+                db_tag = Tag(
+                    name=tag.name,
+                    user_id=account.ledger.user_id
+                )
+                db.add(db_tag)
+                db.commit()
+                db.refresh(db_tag)
+            db_transaction_tag = TransactionTag(
+                transaction_id=db_transaction.transaction_id,
+                tag_id=db_tag.tag_id
+            )
+            db.add(db_transaction_tag)
+        db.commit()
+        db.refresh(db_transaction)
+
     return db_transaction
 
 def create_transfer_transaction(db: Session, transfer: TransferCreate, user_id: int):
@@ -209,6 +229,7 @@ def create_transfer_transaction(db: Session, transfer: TransferCreate, user_id: 
         is_transfer=True,
         transfer_id=str(transfer_id),
         transfer_type="source",
+        tags=transfer.tags
     )
     create_transaction(db=db, transaction=transferOut)
 
@@ -225,6 +246,7 @@ def create_transfer_transaction(db: Session, transfer: TransferCreate, user_id: 
         is_transfer=True,
         transfer_id=str(transfer_id),
         transfer_type="destination",
+        tags=transfer.tags
     )
     create_transaction(db=db, transaction=transferIn)
 

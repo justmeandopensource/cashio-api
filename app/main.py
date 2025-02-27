@@ -8,6 +8,7 @@ from app.routers import (
     ledger_router,
     account_router,
     transaction_router,
+    tag_router,
     category_router,
     system_router
 )
@@ -36,6 +37,7 @@ app.include_router(user_router.user_Router)
 app.include_router(ledger_router.ledger_Router)
 app.include_router(account_router.account_Router)
 app.include_router(transaction_router.transaction_Router)
+app.include_router(tag_router.tag_Router)
 app.include_router(category_router.category_Router)
 app.include_router(system_router.system_Router)
 
