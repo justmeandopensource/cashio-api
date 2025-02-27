@@ -36,7 +36,7 @@ def get_transactions_for_account_id(db: Session, account_id: int, offset: Option
             "transfer_id": str(transaction.transfer_id),
             "transfer_type": transaction.transfer_type,
             "created_at": transaction.created_at,
-            "tags": [{"tag_id": tag.tag_id, "name": tag.name} for tag in transaction.tags]
+            "tags": [{"tag_id": tag.tag_id, "user_id": tag.user_id, "name": tag.name} for tag in transaction.tags]
         }
         formatted_transactions.append(formatted_transaction)
 
