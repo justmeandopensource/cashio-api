@@ -2,7 +2,8 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from routers import (
+from app.version import __version__
+from app.routers import (
     user_router,
     ledger_router,
     account_router,
@@ -10,10 +11,9 @@ from routers import (
     category_router,
     system_router
 )
-from database.connection import Base, engine
-from models import model
-from repositories.settings import settings
-from version import __version__
+from app.database.connection import Base, engine
+from app.models import model
+from app.repositories.settings import settings
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -40,4 +40,4 @@ app.include_router(category_router.category_Router)
 app.include_router(system_router.system_Router)
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host=settings.API_HOST, port=settings.API_PORT, reload=True)
+    uvicorn.run("app.main:app", host=settings.API_HOST, port=settings.API_PORT, reload=True)

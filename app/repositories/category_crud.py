@@ -1,9 +1,9 @@
 from typing import Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-from models.model import Category
-from repositories.user_crud import get_user_by_username
-from schemas.category_schema import CategoryCreate
+from app.models.model import Category
+from app.repositories.user_crud import get_user_by_username
+from app.schemas.category_schema import CategoryCreate
 
 def get_categories_by_username(
         db: Session,

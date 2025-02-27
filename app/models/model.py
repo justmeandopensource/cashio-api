@@ -13,7 +13,7 @@ from sqlalchemy import (
 )
 
 from sqlalchemy.orm import relationship
-from database.connection import Base
+from app.database.connection import Base
 
 class User(Base):
     __tablename__ = "users"
@@ -28,6 +28,7 @@ class User(Base):
 
     ledgers = relationship("Ledger", back_populates="user")
     categories = relationship("Category", back_populates="user")
+    tags = relationship("Tag", back_populates="user")
 
 class Ledger(Base):
     __tablename__ = "ledgers"
@@ -107,6 +108,7 @@ class Transaction(Base):
     account = relationship("Account", back_populates="transactions")
     category = relationship("Category")
     splits = relationship("TransactionSplit", back_populates="transaction", cascade="all, delete-orphan")
+    tags = relationship("Tag", secondary="transaction_tags", back_populates="transactions")
 
 class TransactionSplit(Base):
     __tablename__ = "transaction_splits"
@@ -121,3 +123,37 @@ class TransactionSplit(Base):
     transaction = relationship("Transaction", back_populates="splits")
     category = relationship("Category")
 
+class Tag(Base):
+    __tablename__ = "tags"
+
+    tag_id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
+    name = Column(String(50), nullable=False)
+    description = Column(String(200), nullable=True)
+    color = Column(String(7), nullable=True)  # Hex color code (e.g., #FF5733)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc))
+
+    user = relationship("User", back_populates="tags")
+    
+    transactions = relationship(
+        "Transaction",
+        secondary="transaction_tags",
+        back_populates="tags"
+    )
+
+    __table_args__ = (
+        UniqueConstraint('user_id', 'name', name='uq_user_tag_name'),
+    )
+
+class TransactionTag(Base):
+    __tablename__ = "transaction_tags"
+
+    id = Column(Integer, primary_key=True)
+    transaction_id = Column(Integer, ForeignKey('transactions.transaction_id', ondelete='CASCADE'), nullable=False)
+    tag_id = Column(Integer, ForeignKey('tags.tag_id', ondelete='CASCADE'), nullable=False)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+
+    __table_args__ = (
+        UniqueConstraint('transaction_id', 'tag_id', name='uq_transaction_tag'),
+    )

@@ -1,10 +1,10 @@
 from typing import Optional, Literal
 from fastapi import Depends, APIRouter, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from schemas import user_schema, category_schema
-from repositories import category_crud
-from database.connection import get_db
-from security.user_security import get_current_user
+from app.schemas import user_schema, category_schema
+from app.repositories import category_crud
+from app.database.connection import get_db
+from app.security.user_security import get_current_user
 
 category_Router = APIRouter(prefix="/category")
 

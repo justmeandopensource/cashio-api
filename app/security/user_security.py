@@ -4,10 +4,10 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from repositories import user_crud
-from schemas import user_schema
-from database.connection import get_db
-from repositories.settings import settings
+from app.repositories import user_crud
+from app.schemas import user_schema
+from app.database.connection import get_db
+from app.repositories.settings import settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="user/login")

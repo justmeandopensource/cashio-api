@@ -1,8 +1,8 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-from models.model import Ledger
-from schemas.ledger_schema import LedgerCreate
-from repositories.user_crud import get_user_by_username
+from app.models.model import Ledger
+from app.schemas.ledger_schema import LedgerCreate
+from app.repositories.user_crud import get_user_by_username
 
 def create_ledger(db: Session, user_id: int, ledger: LedgerCreate):
     existing_ledger = db.query(Ledger).filter(

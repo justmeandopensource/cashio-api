@@ -4,8 +4,8 @@ from uuid import uuid4
 from fastapi import HTTPException, status
 from datetime import datetime
 from sqlalchemy.orm import Session, joinedload
-from schemas.transaction_schema import TransactionCreate, TransferCreate
-from models.model import Transaction, TransactionSplit, Account
+from app.schemas.transaction_schema import TransactionCreate, TransferCreate
+from app.models.model import Transaction, TransactionSplit, Account
 
 def get_transactions_for_account_id(db: Session, account_id: int, offset: Optional[int] = 0, limit: Optional[int] = 50):
     transactions = db.query(Transaction)\

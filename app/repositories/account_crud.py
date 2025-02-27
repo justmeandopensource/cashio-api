@@ -3,8 +3,8 @@ from typing import Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
-from schemas.account_schema import AccountCreate, AccountUpdate
-from models.model import Account
+from app.schemas.account_schema import AccountCreate, AccountUpdate
+from app.models.model import Account
 
 def create_account(db: Session, ledger_id: int, account: AccountCreate):
     existing_account = db.query(Account).filter(

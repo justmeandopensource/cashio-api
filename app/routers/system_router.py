@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 import platform
-from version import __version__
+from app.version import __version__
 
 system_Router = APIRouter(prefix="/api")
 
