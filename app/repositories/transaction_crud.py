@@ -173,13 +173,6 @@ def create_transfer_transaction(db: Session, transfer: TransferCreate, user_id: 
             detail="Transferring to same account not allowed"
         )
 
-    # Ensure source account has sufficient balance
-    if source_account.net_balance < transfer.source_amount:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Insufficient funds"
-        )
-
     # Ensure accounts belong to the users
     if source_account.ledger.user_id != user_id or destination_account.ledger.user_id != user_id:
         raise HTTPException(

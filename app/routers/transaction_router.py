@@ -13,7 +13,7 @@ def get_transactions_by_account(
     ledger_id: int,
     account_id: int,
     page: int = Query(default=1, ge=1, description="Page number (starting from 1)"),
-    per_page: int = Query(default=25, ge=1, le=100, description="Number of transactions per page (max 50)"),
+    per_page: int = Query(default=15, ge=1, le=50, description="Number of transactions per page (max 50)"),
     user: user_schema.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
