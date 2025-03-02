@@ -78,11 +78,11 @@ def add_expense_transaction(
             detail="Transaction type must be 'expense' for this endpoint"
         )
 
-    # Ensure debit is positive and credit is zero for expense transactions
-    if transaction.debit <= 0 or transaction.credit != 0:
+    # Ensure credit is zero for expense transactions
+    if transaction.credit != 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="For expense transactions, debit must be positive and credit must be zero"
+            detail="For expense transactions, credit must be zero"
         )
 
     # Create the transaction
