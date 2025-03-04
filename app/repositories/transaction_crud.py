@@ -4,8 +4,8 @@ from uuid import uuid4
 from fastapi import HTTPException, status
 from datetime import datetime
 from sqlalchemy.orm import Session, joinedload
-from app.schemas.transaction_schema import TransactionCreate, TransferCreate
-from app.models.model import Transaction, TransactionSplit, Account, Tag, TransactionTag
+from app.schemas.transaction_schema import TransactionCreate, TransactionSplitResponse, TransferCreate
+from app.models.model import Transaction, TransactionSplit, Account, Category, Tag, TransactionTag
 
 def get_transactions_for_account_id(db: Session, account_id: int, offset: Optional[int] = 0, limit: Optional[int] = 50):
     transactions = db.query(Transaction)\
@@ -244,3 +244,52 @@ def create_transfer_transaction(db: Session, transfer: TransferCreate, user_id: 
     create_transaction(db=db, transaction=transferIn)
 
     return {"message": "funds transferred successfully"}
+
+def get_split_transactions(db: Session, transaction_id: int) -> List[TransactionSplit]:
+    # Fetch the splits for the transaction
+    splits = db.query(TransactionSplit).filter(TransactionSplit.transaction_id == transaction_id).all()
+
+    if not splits:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No splits found for the given transaction ID"
+        )
+
+    return splits
+
+def get_split_transactions(db: Session, transaction_id: int) -> List[TransactionSplitResponse]:
+    # Fetch the splits for the transaction and join with the Category table to get the category name
+    splits = db.query(
+        TransactionSplit.split_id,
+        TransactionSplit.transaction_id,
+        TransactionSplit.category_id,
+        Category.name.label("category_name"),  # Include category name
+        TransactionSplit.credit,
+        TransactionSplit.debit,
+        TransactionSplit.notes
+    ).join(
+        Category, TransactionSplit.category_id == Category.category_id, isouter=True
+    ).filter(
+        TransactionSplit.transaction_id == transaction_id
+    ).all()
+
+    if not splits:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No splits found for the given transaction ID"
+        )
+
+    # Format the response using the TransactionSplitResponse schema
+    formatted_splits = []
+    for split in splits:
+        formatted_splits.append({
+            "split_id": split.split_id,
+            "transaction_id": split.transaction_id,
+            "category_id": split.category_id,
+            "category_name": split.category_name,
+            "credit": split.credit,
+            "debit": split.debit,
+            "notes": split.notes
+        })
+
+    return formatted_splits

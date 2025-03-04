@@ -20,6 +20,9 @@ class TransactionSplit(BaseModel, str_strip_whitespace=True):
     class Config:
         from_attributes = True
 
+class TransactionSplitResponse(TransactionSplit):
+    category_name: Optional[str] = None
+
 class TransactionCreate(BaseModel):
     account_id: int
     category_id: Optional[int] = None

@@ -1,5 +1,6 @@
 from fastapi import Depends, APIRouter, HTTPException, Query, status
 from sqlalchemy.orm import Session
+from typing import List
 from app.schemas import user_schema, transaction_schema
 from app.repositories import ledger_crud, transaction_crud
 from app.database.connection import get_db
@@ -103,3 +104,21 @@ def add_transfer_transaction(
         )
 
     return {"message": "Transfer completed successfully"}
+
+@transaction_Router.get("/{ledger_id}/transaction/{transaction_id}/splits", response_model=List[transaction_schema.TransactionSplitResponse], tags=["transactions"])
+def get_split_transactions(
+    ledger_id: int,
+    transaction_id: int,
+    user: user_schema.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Ensure the ledger belongs to the user
+    ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
+    if not ledger or ledger.user_id != user.user_id:
+        raise HTTPException(status_code=404, detail="Ledger not found")
+
+    # Fetch the split transactions
+    splits = transaction_crud.get_split_transactions(db=db, transaction_id=transaction_id)
+
+    return splits
+
