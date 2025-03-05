@@ -73,3 +73,11 @@ class TransferCreate(BaseModel):
     notes: Optional[str] = None
     tags: Optional[List[TagCreate]] = None
 
+class TransferTransactionResponse(BaseModel):
+    source_transaction: Transaction
+    destination_transaction: Transaction
+    source_account_name: str
+    destination_account_name: str
+    source_ledger_name: str
+    destination_ledger_name: str
+

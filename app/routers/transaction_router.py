@@ -1,6 +1,7 @@
 from fastapi import Depends, APIRouter, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import List
+from uuid import UUID
 from app.schemas import user_schema, transaction_schema
 from app.repositories import ledger_crud, transaction_crud
 from app.database.connection import get_db
@@ -122,3 +123,34 @@ def get_split_transactions(
 
     return splits
 
+@transaction_Router.get("/transfer/{transfer_id}", response_model=transaction_schema.TransferTransactionResponse, tags=["transactions"])
+def get_transfer_transactions(
+    transfer_id: str,
+    user: user_schema.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    try:
+        # Validate that the transfer_id is a valid UUID
+        UUID(transfer_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid transfer_id. It must be a valid UUID."
+        )
+    # Fetch the transfer transactions
+    transfer_details = transaction_crud.get_transfer_transactions(db=db, transfer_id=transfer_id)
+
+    # Ensure the user has access to the source or destination ledger
+    source_ledger_id = db.query(Account.ledger_id).filter(Account.account_id == transfer_details["source_transaction"].account_id).first()
+    destination_ledger_id = db.query(Account.ledger_id).filter(Account.account_id == transfer_details["destination_transaction"].account_id).first()
+
+    if not source_ledger_id or not destination_ledger_id:
+        raise HTTPException(status_code=404, detail="Ledger not found")
+
+    source_ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=source_ledger_id[0])
+    destination_ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=destination_ledger_id[0])
+
+    if not source_ledger or not destination_ledger or source_ledger.user_id != user.user_id or destination_ledger.user_id != user.user_id:
+        raise HTTPException(status_code=404, detail="Ledger not found or access denied")
+
+    return transfer_details

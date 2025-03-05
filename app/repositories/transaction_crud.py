@@ -5,7 +5,7 @@ from fastapi import HTTPException, status
 from datetime import datetime
 from sqlalchemy.orm import Session, joinedload
 from app.schemas.transaction_schema import TransactionCreate, TransactionSplitResponse, TransferCreate
-from app.models.model import Transaction, TransactionSplit, Account, Category, Tag, TransactionTag
+from app.models.model import Transaction, TransactionSplit, Account, Ledger, Category, Tag, TransactionTag
 
 def get_transactions_for_account_id(db: Session, account_id: int, offset: Optional[int] = 0, limit: Optional[int] = 50):
     transactions = db.query(Transaction)\
@@ -293,3 +293,50 @@ def get_split_transactions(db: Session, transaction_id: int) -> List[Transaction
         })
 
     return formatted_splits
+
+def get_transfer_transactions(db: Session, transfer_id: str):
+    # Fetch both transactions (source and destination) for the given transfer_id
+    transactions = db.query(Transaction).filter(Transaction.transfer_id == transfer_id).all()
+
+    if not transactions or len(transactions) != 2:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Transfer transactions not found or incomplete"
+        )
+
+    # Identify source and destination transactions
+    source_transaction = next((t for t in transactions if t.transfer_type == "source"), None)
+    destination_transaction = next((t for t in transactions if t.transfer_type == "destination"), None)
+
+    if not source_transaction or not destination_transaction:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Source or destination transaction not found"
+        )
+
+    # Fetch account and ledger details for the source transaction
+    source_account = db.query(Account).filter(Account.account_id == source_transaction.account_id).first()
+    source_ledger = db.query(Ledger).filter(Ledger.ledger_id == source_account.ledger_id).first()
+
+    # Fetch account and ledger details for the destination transaction
+    destination_account = db.query(Account).filter(Account.account_id == destination_transaction.account_id).first()
+    destination_ledger = db.query(Ledger).filter(Ledger.ledger_id == destination_account.ledger_id).first()
+
+    if not source_account or not destination_account or not source_ledger or not destination_ledger:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Account or ledger details not found"
+        )
+
+    source_transaction.transfer_id = str(source_transaction.transfer_id)
+    destination_transaction.transfer_id = str(destination_transaction.transfer_id)
+
+    return {
+        "source_transaction": source_transaction,
+        "destination_transaction": destination_transaction,
+        "source_account_name": source_account.name,
+        "destination_account_name": destination_account.name,
+        "source_ledger_name": source_ledger.name,
+        "destination_ledger_name": destination_ledger.name
+    }
+
