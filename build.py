@@ -2,8 +2,6 @@
 import subprocess
 
 class LocalBuilder:
-    def __init__(self):
-        self.docker_image_name = "cashio-api"
 
     def get_new_version(self) -> str:
         """Get the new version using semantic-release."""
@@ -19,36 +17,12 @@ class LocalBuilder:
         )
         return result.stdout.strip()
 
-    def build_docker_image(self, version: str):
-        """Build Docker image with version tag."""
-        
-        # Create tags for the image
-        version_tag = f"{self.docker_image_name}:v{version}"
-        latest_tag = f"{self.docker_image_name}:latest"
-        
-        # Build the Docker image
-        print(f"Building Docker image with tags: {version_tag}, {latest_tag}")
-        subprocess.run([
-            "docker", "build",
-            "-t", version_tag,
-            "-t", latest_tag,
-            "."
-        ], check=True)
-        
-        return version_tag, latest_tag
-
     def run(self):
         """Main execution method."""
         try:
             # Get new version using semantic-release
             version = self.get_new_version()
             print(f"New version determined by semantic-release: {version}")
-            
-            # Build Docker image
-            version_tag, latest_tag = self.build_docker_image(version)
-            print("\nSuccessfully built Docker images with tags:")
-            print(f"- {version_tag}")
-            print(f"- {latest_tag}")
             
         except subprocess.CalledProcessError as e:
             print(f"Error during build process: {e}")
