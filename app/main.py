@@ -42,4 +42,11 @@ app.include_router(category_router.category_Router)
 app.include_router(system_router.system_Router)
 
 if __name__ == "__main__":
-    uvicorn.run("app.main:app", host=settings.API_HOST, port=settings.API_PORT, reload=True)
+    uvicorn.run(
+        "app.main:app",
+        host=settings.API_HOST,
+        port=settings.API_PORT,
+        reload=True,
+        ssl_keyfile="/app/certs/key.pem",
+        ssl_certfile="/app/certs/cert.pem"
+    )
