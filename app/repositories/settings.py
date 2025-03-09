@@ -13,8 +13,7 @@ class Settings(BaseSettings):
 
     SQLALCHEMY_DATABASE_URL: str = "postgresql://test:test@host:5432/db"
 
-    # frontend url to allow access to the api
-    CASHIO_UI_URL: List[str] = ["http://localhost:5173"]
+    ALLOWED_ORIGINS: List[str] = ["http://localhost:5173"]
 
     # for jwt
     SECRET_KEY: str = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
