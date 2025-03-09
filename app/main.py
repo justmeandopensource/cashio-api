@@ -23,7 +23,7 @@ async def lifespan(app: FastAPI):
     yield
     # stuff to do when app stops
 
-app = FastAPI(title=settings.API_TITLE, version=__version__, lifespan=lifespan)
+app = FastAPI(version=__version__, lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -44,8 +44,8 @@ app.include_router(system_router.system_Router)
 if __name__ == "__main__":
     uvicorn.run(
         "app.main:app",
-        host=settings.API_HOST,
-        port=settings.API_PORT,
+        host="0.0.0.0",
+        port=8000,
         reload=True,
         ssl_keyfile="/app/certs/key.pem",
         ssl_certfile="/app/certs/cert.pem"
