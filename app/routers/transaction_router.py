@@ -154,3 +154,22 @@ def get_transfer_transactions(
         raise HTTPException(status_code=404, detail="Ledger not found or access denied")
 
     return transfer_details
+
+from fastapi import Query
+
+@transaction_Router.get("/{ledger_id}/transaction/notes/suggestions", response_model=List[str], tags=["transactions"])
+def get_note_suggestions(
+    ledger_id: int,
+    search_text: str = Query(..., min_length=3, description="Text to search for in transaction notes"),
+    user: user_schema.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Ensure the ledger belongs to the user
+    ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
+    if not ledger or ledger.user_id != user.user_id:
+        raise HTTPException(status_code=404, detail="Ledger not found")
+
+    # Fetch the suggestions
+    suggestions = transaction_crud.get_transaction_notes_suggestions(db=db, ledger_id=ledger_id, search_text=search_text)
+
+    return suggestions

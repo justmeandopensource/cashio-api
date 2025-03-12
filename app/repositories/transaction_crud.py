@@ -340,3 +340,15 @@ def get_transfer_transactions(db: Session, transfer_id: str):
         "destination_ledger_name": destination_ledger.name
     }
 
+def get_transaction_notes_suggestions(db: Session, ledger_id: int, search_text: str, limit: int = 5) -> List[str]:
+    suggestions = db.query(Transaction.notes)\
+        .filter(Transaction.notes.ilike(f"%{search_text}%"))\
+        .filter(Transaction.account_id.in_(
+            db.query(Account.account_id).filter(Account.ledger_id == ledger_id)
+        ))\
+        .order_by(Transaction.date.desc())\
+        .limit(limit)\
+        .all()
+
+    return [suggestion[0] for suggestion in suggestions]
+
