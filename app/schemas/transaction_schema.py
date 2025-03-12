@@ -1,13 +1,17 @@
-from typing import List, Optional, Literal
-from pydantic import BaseModel
 from datetime import datetime
+from typing import List, Literal, Optional
+
+from pydantic import BaseModel
+
 from app.schemas.tag_schema import Tag, TagCreate
+
 
 class TransactionSplitCreate(BaseModel):
     category_id: int
     credit: float = 0.00
     debit: float = 0.00
     notes: Optional[str] = None
+
 
 class TransactionSplit(BaseModel, str_strip_whitespace=True):
     split_id: int
@@ -20,13 +24,15 @@ class TransactionSplit(BaseModel, str_strip_whitespace=True):
     class Config:
         from_attributes = True
 
+
 class TransactionSplitResponse(TransactionSplit):
     category_name: Optional[str] = None
+
 
 class TransactionCreate(BaseModel):
     account_id: int
     category_id: Optional[int] = None
-    type: Literal['income', 'expense']
+    type: Literal["income", "expense"]
     credit: float = 0.00
     debit: float = 0.00
     date: datetime
@@ -37,6 +43,7 @@ class TransactionCreate(BaseModel):
     is_split: bool = False
     splits: Optional[List[TransactionSplitCreate]] = None
     tags: Optional[List[TagCreate]] = None
+
 
 class Transaction(BaseModel, str_strip_whitespace=True):
     transaction_id: int
@@ -57,12 +64,14 @@ class Transaction(BaseModel, str_strip_whitespace=True):
     class Config:
         from_attributes = True
 
+
 class PaginatedTransactionResponse(BaseModel):
     transactions: List[Transaction]
     total_transactions: int
     total_pages: int
     current_page: int
     per_page: int
+
 
 class TransferCreate(BaseModel):
     source_account_id: int
@@ -73,6 +82,7 @@ class TransferCreate(BaseModel):
     notes: Optional[str] = None
     tags: Optional[List[TagCreate]] = None
 
+
 class TransferTransactionResponse(BaseModel):
     source_transaction: Transaction
     destination_transaction: Transaction
@@ -80,4 +90,3 @@ class TransferTransactionResponse(BaseModel):
     destination_account_name: str
     source_ledger_name: str
     destination_ledger_name: str
-

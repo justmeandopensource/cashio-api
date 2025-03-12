@@ -1,8 +1,11 @@
-from fastapi import APIRouter
 import platform
+
+from fastapi import APIRouter
+
 from app.version import __version__
 
 system_Router = APIRouter(prefix="/api")
+
 
 @system_Router.get("/sysinfo", tags=["system"])
 async def get_sysinfo():
@@ -10,4 +13,3 @@ async def get_sysinfo():
         "api_version": __version__,
         "python_version": platform.python_version(),
     }
-

@@ -1,7 +1,9 @@
 from pydantic import BaseModel
 
+
 class TagCreate(BaseModel):
     name: str
+
 
 class Tag(TagCreate):
     tag_id: int

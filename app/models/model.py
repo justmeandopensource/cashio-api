@@ -1,20 +1,22 @@
 from datetime import datetime, timezone
-from sqlalchemy import (
-    Column,
-    Integer,
-    String,
-    DateTime,
-    Numeric,
-    Enum,
-    Boolean,
-    UUID,
-    ForeignKey,
-    UniqueConstraint,
-    Index
-)
 
+from sqlalchemy import (
+    UUID,
+    Boolean,
+    Column,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship
+
 from app.database.connection import Base
+
 
 class User(Base):
     __tablename__ = "users"
@@ -31,11 +33,12 @@ class User(Base):
     categories = relationship("Category", back_populates="user")
     tags = relationship("Tag", back_populates="user")
 
+
 class Ledger(Base):
     __tablename__ = "ledgers"
 
     ledger_id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
     name = Column(String(100), nullable=False)
     description = Column(String(100), nullable=True)
     currency_symbol = Column(String(10), nullable=False)
@@ -46,19 +49,20 @@ class Ledger(Base):
     user = relationship("User", back_populates="ledgers")
     accounts = relationship("Account", back_populates="ledger")
 
-    __table_args__ = (
-        UniqueConstraint('user_id', 'name', name='uq_user_ledger_name'),
-    )
+    __table_args__ = (UniqueConstraint("user_id", "name", name="uq_user_ledger_name"),)
+
 
 class Account(Base):
     __tablename__ = "accounts"
 
     account_id = Column(Integer, primary_key=True)
-    ledger_id = Column(Integer, ForeignKey('ledgers.ledger_id'), nullable=False)
-    parent_account_id = Column(Integer, ForeignKey('accounts.account_id'), nullable=True)
+    ledger_id = Column(Integer, ForeignKey("ledgers.ledger_id"), nullable=False)
+    parent_account_id = Column(
+        Integer, ForeignKey("accounts.account_id"), nullable=True
+    )
     name = Column(String(100), nullable=False)
     description = Column(String(100), nullable=True)
-    type = Column(Enum('asset', 'liability', name='account_type'), nullable=False)
+    type = Column(Enum("asset", "liability", name="account_type"), nullable=False)
     is_group = Column(Boolean, default=False, nullable=False)
     opening_balance = Column(Numeric(15, 2), default=0.00, nullable=False)
     balance = Column(Numeric(15, 2), default=0.00, nullable=False)
@@ -68,38 +72,46 @@ class Account(Base):
     updated_at = Column(DateTime, default=datetime.now(timezone.utc))
 
     ledger = relationship("Ledger", back_populates="accounts")
-    parent_account = relationship("Account", remote_side=[account_id], back_populates="child_accounts")
+    parent_account = relationship(
+        "Account", remote_side=[account_id], back_populates="child_accounts"
+    )
     child_accounts = relationship("Account", back_populates="parent_account")
     transactions = relationship("Transaction", back_populates="account")
 
     __table_args__ = (
-        UniqueConstraint('ledger_id', 'name', name='uq_ledger_account_name'),
+        UniqueConstraint("ledger_id", "name", name="uq_ledger_account_name"),
     )
+
 
 class Category(Base):
     __tablename__ = "categories"
 
     category_id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
-    parent_category_id = Column(Integer, ForeignKey('categories.category_id'), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
+    parent_category_id = Column(
+        Integer, ForeignKey("categories.category_id"), nullable=True
+    )
     name = Column(String(100), nullable=False)
-    type = Column(Enum('income', 'expense', name='category_type'), nullable=False)
+    type = Column(Enum("income", "expense", name="category_type"), nullable=False)
     is_group = Column(Boolean, default=False, nullable=False)
 
     user = relationship("User", back_populates="categories")
-    parent_category = relationship("Category", remote_side=[category_id], back_populates="child_categories")
+    parent_category = relationship(
+        "Category", remote_side=[category_id], back_populates="child_categories"
+    )
     child_categories = relationship("Category", back_populates="parent_category")
 
     __table_args__ = (
-        UniqueConstraint('parent_category_id', 'name', name='uq_parent_category_name'),
+        UniqueConstraint("parent_category_id", "name", name="uq_parent_category_name"),
     )
+
 
 class Transaction(Base):
     __tablename__ = "transactions"
 
     transaction_id = Column(Integer, primary_key=True)
-    account_id = Column(Integer, ForeignKey('accounts.account_id'), nullable=False)
-    category_id = Column(Integer, ForeignKey('categories.category_id'), nullable=True)
+    account_id = Column(Integer, ForeignKey("accounts.account_id"), nullable=False)
+    category_id = Column(Integer, ForeignKey("categories.category_id"), nullable=True)
     credit = Column(Numeric(15, 2), default=0.00, nullable=False)
     debit = Column(Numeric(15, 2), default=0.00, nullable=False)
     date = Column(DateTime, nullable=False)
@@ -107,27 +119,36 @@ class Transaction(Base):
     is_split = Column(Boolean, default=False, nullable=False)
     is_transfer = Column(Boolean, default=False, nullable=False)
     transfer_id = Column(UUID, nullable=True)
-    transfer_type = Column(Enum('source', 'destination', name='transfer_type'), nullable=True)
+    transfer_type = Column(
+        Enum("source", "destination", name="transfer_type"), nullable=True
+    )
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
 
     account = relationship("Account", back_populates="transactions")
     category = relationship("Category")
-    splits = relationship("TransactionSplit", back_populates="transaction", cascade="all, delete-orphan")
-    tags = relationship("Tag", secondary="transaction_tags", back_populates="transactions")
+    splits = relationship(
+        "TransactionSplit", back_populates="transaction", cascade="all, delete-orphan"
+    )
+    tags = relationship(
+        "Tag", secondary="transaction_tags", back_populates="transactions"
+    )
 
     __table_args__ = (
-        Index('idx_transactions_account_id', 'account_id'),
-        Index('idx_transactions_category_id', 'category_id'),
-        Index('idx_transactions_date', 'date'),
-        Index('idx_transactions_account_id_date', 'account_id', 'date')
+        Index("idx_transactions_account_id", "account_id"),
+        Index("idx_transactions_category_id", "category_id"),
+        Index("idx_transactions_date", "date"),
+        Index("idx_transactions_account_id_date", "account_id", "date"),
     )
+
 
 class TransactionSplit(Base):
     __tablename__ = "transaction_splits"
 
     split_id = Column(Integer, primary_key=True)
-    transaction_id = Column(Integer, ForeignKey('transactions.transaction_id'), nullable=False)
-    category_id = Column(Integer, ForeignKey('categories.category_id'), nullable=False)
+    transaction_id = Column(
+        Integer, ForeignKey("transactions.transaction_id"), nullable=False
+    )
+    category_id = Column(Integer, ForeignKey("categories.category_id"), nullable=False)
     credit = Column(Numeric(15, 2), default=0.00, nullable=False)
     debit = Column(Numeric(15, 2), default=0.00, nullable=False)
     notes = Column(String(500), nullable=True)
@@ -135,35 +156,39 @@ class TransactionSplit(Base):
     transaction = relationship("Transaction", back_populates="splits")
     category = relationship("Category")
 
+
 class Tag(Base):
     __tablename__ = "tags"
 
     tag_id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.user_id'), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
     name = Column(String(50), nullable=False)
 
     user = relationship("User", back_populates="tags")
-    
+
     transactions = relationship(
-        "Transaction",
-        secondary="transaction_tags",
-        back_populates="tags"
+        "Transaction", secondary="transaction_tags", back_populates="tags"
     )
 
-    __table_args__ = (
-        UniqueConstraint('user_id', 'name', name='uq_user_tag_name'),
-    )
+    __table_args__ = (UniqueConstraint("user_id", "name", name="uq_user_tag_name"),)
+
 
 class TransactionTag(Base):
     __tablename__ = "transaction_tags"
 
     id = Column(Integer, primary_key=True)
-    transaction_id = Column(Integer, ForeignKey('transactions.transaction_id', ondelete='CASCADE'), nullable=False)
-    tag_id = Column(Integer, ForeignKey('tags.tag_id', ondelete='CASCADE'), nullable=False)
+    transaction_id = Column(
+        Integer,
+        ForeignKey("transactions.transaction_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    tag_id = Column(
+        Integer, ForeignKey("tags.tag_id", ondelete="CASCADE"), nullable=False
+    )
 
     __table_args__ = (
-        UniqueConstraint('transaction_id', 'tag_id', name='uq_transaction_tag'),
-        Index('idx_transaction_tags_transaction_id', 'transaction_id'),
-        Index('idx_transaction_tags_tag_id', 'tag_id'),
-        Index('idx_transaction_tags_transaction_id_tag_id', 'transaction_id', 'tag_id')
+        UniqueConstraint("transaction_id", "tag_id", name="uq_transaction_tag"),
+        Index("idx_transaction_tags_transaction_id", "transaction_id"),
+        Index("idx_transaction_tags_tag_id", "tag_id"),
+        Index("idx_transaction_tags_transaction_id_tag_id", "transaction_id", "tag_id"),
     )
