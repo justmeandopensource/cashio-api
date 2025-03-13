@@ -80,7 +80,7 @@ def create_transaction(db: Session, transaction: TransactionCreate):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Account not found"
         )
-    if account.is_group:
+    if account.is_group is True:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Operation can be performed on group accounts",
@@ -116,15 +116,15 @@ def create_transaction(db: Session, transaction: TransactionCreate):
     db.refresh(db_transaction)
 
     # Update account balance based on account type
-    if account.type == "asset":
-        if transaction.type == "income":
+    if "asset" in account.type:
+        if "income" in transaction.type:
             account.balance += credit
-        elif transaction.type == "expense":
+        elif "expense" in transaction.type:
             account.balance -= debit
-    elif account.type == "liability":
-        if transaction.type == "income":
+    elif "liability" in account.type:
+        if "income" in transaction.type:
             account.balance -= credit
-        elif transaction.type == "expense":
+        elif "expense" in transaction.type:
             account.balance += debit
 
     account.net_balance = account.opening_balance + account.balance
@@ -240,7 +240,7 @@ def create_transfer_transaction(db: Session, transfer: TransferCreate, user_id: 
         )
 
     # Ensure the accounts are not group accounts
-    if source_account.is_group or destination_account.is_group:
+    if source_account.is_group is True or destination_account.is_group is True:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Source or destination account is a group account. Operation cannot be performed on group accounts",
@@ -307,23 +307,6 @@ def create_transfer_transaction(db: Session, transfer: TransferCreate, user_id: 
     create_transaction(db=db, transaction=transferIn)
 
     return {"message": "funds transferred successfully"}
-
-
-def get_split_transactions(db: Session, transaction_id: int) -> List[TransactionSplit]:
-    # Fetch the splits for the transaction
-    splits = (
-        db.query(TransactionSplit)
-        .filter(TransactionSplit.transaction_id == transaction_id)
-        .all()
-    )
-
-    if not splits:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No splits found for the given transaction ID",
-        )
-
-    return splits
 
 
 def get_split_transactions(
@@ -441,6 +424,94 @@ def get_transfer_transactions(db: Session, transfer_id: str):
         "source_ledger_name": source_ledger.name,
         "destination_ledger_name": destination_ledger.name,
     }
+
+
+def delete_transaction(db: Session, transaction_id: int, user_id: int):
+    # Fetch the transaction
+    transaction = (
+        db.query(Transaction)
+        .filter(Transaction.transaction_id == transaction_id)
+        .first()
+    )
+    if not transaction:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found"
+        )
+
+    # Fetch the account associated with the transaction
+    account = (
+        db.query(Account).filter(Account.account_id == transaction.account_id).first()
+    )
+    if not account or account.ledger.user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Account not found or access denied",
+        )
+
+    # If it's a transfer transaction, fetch the associated transaction
+    if transaction.is_transfer is True:
+        transfer_transactions = (
+            db.query(Transaction)
+            .filter(Transaction.transfer_id == transaction.transfer_id)
+            .all()
+        )
+        if len(transfer_transactions) != 2:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid transfer transaction",
+            )
+
+        # Delete both transactions
+        for trans in transfer_transactions:
+            # Update account balance
+            update_account_balance(db, trans, reverse=True)
+            db.delete(trans)
+    else:
+        # Update account balance
+        update_account_balance(db, transaction, reverse=True)
+        db.delete(transaction)
+
+    # Commit the changes
+    db.commit()
+
+    return {"message": "Transaction deleted successfully"}
+
+
+def update_account_balance(
+    db: Session, transaction: Transaction, reverse: bool = False
+):
+    account = (
+        db.query(Account).filter(Account.account_id == transaction.account_id).first()
+    )
+    if not account:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Account not found"
+        )
+
+    # Determine the transaction type based on credit and debit values
+    if transaction.credit > 0 and transaction.debit == 0:
+        # This is an income transaction
+        if "asset" in account.type:
+            account.balance -= transaction.credit
+        elif "liability" in account.type:
+            account.balance += transaction.credit
+    elif transaction.debit > 0 and transaction.credit == 0:
+        # This is an expense transaction
+        if "asset" in account.type:
+            account.balance += transaction.debit
+        elif "liability" in account.type:
+            account.balance -= transaction.debit
+    else:
+        # Handle cases where both credit and debit are non-zero (if applicable)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid transaction: both credit and debit are non-zero",
+        )
+
+    account.net_balance = account.opening_balance + account.balance
+    account.updated_at = datetime.now()
+    db.commit()
+    db.refresh(account)
 
 
 def get_transaction_notes_suggestions(

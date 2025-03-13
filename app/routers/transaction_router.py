@@ -210,6 +210,33 @@ def get_transfer_transactions(
 from fastapi import Query
 
 
+@transaction_Router.delete(
+    "/{ledger_id}/transaction/{transaction_id}",
+    response_model=dict,
+    tags=["transactions"],
+)
+def delete_transaction(
+    ledger_id: int,
+    transaction_id: int,
+    user: user_schema.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # Ensure the ledger belongs to the user
+    ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
+    if not ledger or ledger.user_id != user.user_id:
+        raise HTTPException(status_code=404, detail="Ledger not found")
+
+    # Delete the transaction
+    try:
+        transaction_crud.delete_transaction(
+            db=db, transaction_id=transaction_id, user_id=user.user_id
+        )
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    return {"message": "Transaction deleted successfully"}
+
+
 @transaction_Router.get(
     "/{ledger_id}/transaction/notes/suggestions",
     response_model=List[str],
