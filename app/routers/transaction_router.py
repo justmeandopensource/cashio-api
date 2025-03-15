@@ -1,4 +1,5 @@
-from typing import List
+from datetime import datetime
+from typing import List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -261,3 +262,84 @@ def get_note_suggestions(
     )
 
     return suggestions
+
+
+@transaction_Router.get(
+    "/{ledger_id}/transactions",
+    response_model=transaction_schema.PaginatedTransactionResponse,
+    tags=["transactions"],
+)
+def get_transactions_by_ledger(
+    ledger_id: int,
+    account_id: Optional[int] = Query(
+        None, description="Filter transactions by account ID"
+    ),
+    page: int = Query(default=1, ge=1, description="Page number (starting from 1)"),
+    per_page: int = Query(
+        default=15, ge=1, le=50, description="Number of transactions per page (max 50)"
+    ),
+    from_date: Optional[datetime] = Query(
+        None, description="Filter transactions from this date"
+    ),
+    to_date: Optional[datetime] = Query(
+        None, description="Filter transactions up to this date"
+    ),
+    category_id: Optional[int] = Query(
+        None, description="Filter transactions by category ID"
+    ),
+    tags: Optional[List[str]] = Query(None, description="Filter transactions by tags"),
+    tags_match: Optional[str] = Query(
+        "any", description="Filter transactions by tags match type (any/all)"
+    ),
+    search_text: Optional[str] = Query(
+        None, description="Filter transactions by search text in notes"
+    ),
+    transaction_type: Optional[str] = Query(
+        None, description="Filter transactions by type (income/expense)"
+    ),
+    user: user_schema.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
+    if not ledger or ledger.user_id != user.user_id:
+        raise HTTPException(status_code=404, detail="Ledger not found")
+
+    offset = (page - 1) * per_page
+
+    transactions = transaction_crud.get_transactions_for_ledger_id(
+        db=db,
+        ledger_id=ledger_id,
+        account_id=account_id,
+        offset=offset,
+        limit=per_page,
+        from_date=from_date,
+        to_date=to_date,
+        category_id=category_id,
+        tags=tags,
+        tags_match=tags_match,
+        search_text=search_text,
+        transaction_type=transaction_type,
+    )
+
+    total_transactions = transaction_crud.get_transactions_count_for_ledger_id(
+        db=db,
+        ledger_id=ledger_id,
+        account_id=account_id,
+        from_date=from_date,
+        to_date=to_date,
+        category_id=category_id,
+        tags=tags,
+        tags_match=tags_match,
+        search_text=search_text,
+        transaction_type=transaction_type,
+    )
+
+    total_pages = (total_transactions + per_page - 1) // per_page
+
+    return {
+        "transactions": transactions,
+        "total_transactions": total_transactions,
+        "total_pages": total_pages,
+        "current_page": page,
+        "per_page": per_page,
+    }

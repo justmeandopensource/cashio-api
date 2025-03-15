@@ -48,6 +48,7 @@ class TransactionCreate(BaseModel):
 class Transaction(BaseModel, str_strip_whitespace=True):
     transaction_id: int
     account_id: int
+    account_name: Optional[str] = None
     category_id: Optional[int] = None
     category_name: Optional[str] = None
     credit: float

@@ -6,20 +6,11 @@ from uuid import uuid4
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
-from app.models.model import (
-    Account,
-    Category,
-    Ledger,
-    Tag,
-    Transaction,
-    TransactionSplit,
-    TransactionTag,
-)
-from app.schemas.transaction_schema import (
-    TransactionCreate,
-    TransactionSplitResponse,
-    TransferCreate,
-)
+from app.models.model import (Account, Category, Ledger, Tag, Transaction,
+                              TransactionSplit, TransactionTag)
+from app.schemas.transaction_schema import (TransactionCreate,
+                                            TransactionSplitResponse,
+                                            TransferCreate)
 
 
 def get_transactions_for_account_id(
@@ -531,3 +522,117 @@ def get_transaction_notes_suggestions(
     )
 
     return [suggestion[0] for suggestion in suggestions]
+
+def get_transactions_for_ledger_id(
+    db: Session,
+    ledger_id: int,
+    account_id: Optional[int] = None,
+    offset: Optional[int] = 0,
+    limit: Optional[int] = 50,
+    from_date: Optional[datetime] = None,
+    to_date: Optional[datetime] = None,
+    category_id: Optional[int] = None,
+    tags: Optional[List[str]] = None,
+    tags_match: Optional[str] = "any",
+    search_text: Optional[str] = None,
+    transaction_type: Optional[str] = None,
+):
+    query = (
+        db.query(Transaction)
+        .join(Account, Transaction.account_id == Account.account_id)
+        .filter(Account.ledger_id == ledger_id)
+        .options(joinedload(Transaction.category), joinedload(Transaction.tags))
+    )
+
+    if from_date:
+        query = query.filter(Transaction.date >= from_date)
+    if to_date:
+        query = query.filter(Transaction.date <= to_date)
+    if category_id:
+        query = query.filter(Transaction.category_id == category_id)
+    if tags:
+        if tags_match == "all":
+            for tag in tags:
+                query = query.filter(Transaction.tags.any(Tag.name == tag))
+        else:
+            query = query.filter(Transaction.tags.any(Tag.name.in_(tags)))
+    if search_text:
+        query = query.filter(Transaction.notes.ilike(f"%{search_text}%"))
+    if transaction_type:
+        if transaction_type == "income":
+            query = query.filter(Transaction.credit > 0)
+        elif transaction_type == "expense":
+            query = query.filter(Transaction.debit > 0)
+    if account_id:  # Add this filter
+        query = query.filter(Transaction.account_id == account_id)
+
+    transactions = query.order_by(Transaction.date.desc()).offset(offset).limit(limit).all()
+
+    formatted_transactions = []
+    for transaction in transactions:
+        formatted_transaction = {
+            "transaction_id": transaction.transaction_id,
+            "account_id": transaction.account_id,
+            "account_name": transaction.account.name,  # Include account name
+            "category_id": transaction.category_id,
+            "category_name": transaction.category.name if transaction.category else None,
+            "credit": transaction.credit,
+            "debit": transaction.debit,
+            "date": transaction.date,
+            "notes": transaction.notes,
+            "is_split": transaction.is_split,
+            "is_transfer": transaction.is_transfer,
+            "transfer_id": str(transaction.transfer_id),
+            "transfer_type": transaction.transfer_type,
+            "created_at": transaction.created_at,
+            "tags": [
+                {"tag_id": tag.tag_id, "user_id": tag.user_id, "name": tag.name}
+                for tag in transaction.tags
+            ],
+        }
+        formatted_transactions.append(formatted_transaction)
+
+    return formatted_transactions
+
+
+def get_transactions_count_for_ledger_id(
+    db: Session,
+    ledger_id: int,
+    account_id: Optional[int] = None,  # Add this parameter
+    from_date: Optional[datetime] = None,
+    to_date: Optional[datetime] = None,
+    category_id: Optional[int] = None,
+    tags: Optional[List[str]] = None,
+    tags_match: Optional[str] = "any",
+    search_text: Optional[str] = None,
+    transaction_type: Optional[str] = None,
+):
+    query = (
+        db.query(Transaction)
+        .join(Account, Transaction.account_id == Account.account_id)
+        .filter(Account.ledger_id == ledger_id)
+    )
+
+    if from_date:
+        query = query.filter(Transaction.date >= from_date)
+    if to_date:
+        query = query.filter(Transaction.date <= to_date)
+    if category_id:
+        query = query.filter(Transaction.category_id == category_id)
+    if tags:
+        if tags_match == "all":
+            for tag in tags:
+                query = query.filter(Transaction.tags.any(Tag.name == tag))
+        else:
+            query = query.filter(Transaction.tags.any(Tag.name.in_(tags)))
+    if search_text:
+        query = query.filter(Transaction.notes.ilike(f"%{search_text}%"))
+    if transaction_type:
+        if transaction_type == "income":
+            query = query.filter(Transaction.credit > 0)
+        elif transaction_type == "expense":
+            query = query.filter(Transaction.debit > 0)
+    if account_id:  # Add this filter
+        query = query.filter(Transaction.account_id == account_id)
+
+    return query.count()
