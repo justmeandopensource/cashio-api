@@ -10,6 +10,7 @@ from app.repositories.settings import settings
 from app.routers import (
     account_router,
     category_router,
+    insights_router,
     ledger_router,
     system_router,
     tag_router,
@@ -43,6 +44,7 @@ app.include_router(account_router.account_Router)
 app.include_router(transaction_router.transaction_Router)
 app.include_router(tag_router.tag_Router)
 app.include_router(category_router.category_Router)
+app.include_router(insights_router.insights_router)
 app.include_router(system_router.system_Router)
 
 if __name__ == "__main__":
