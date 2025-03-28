@@ -5,7 +5,10 @@ from sqlalchemy.orm import Session
 
 from app.database.connection import get_db
 from app.repositories import ledger_crud
-from app.repositories.insights import income_expense_trend_crud
+from app.repositories.insights import (
+    current_month_overview_crud,
+    income_expense_trend_crud,
+)
 from app.schemas import insights_schema, user_schema
 from app.security.user_security import get_current_user
 
@@ -41,4 +44,30 @@ def get_income_expense_trend(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error generating insights: {str(e)}",
+        )
+
+
+@insights_router.get(
+    "/current-month-overview",
+    response_model=insights_schema.MonthOverviewResponse,
+)
+def get_current_month_overview(
+    ledger_id: int,
+    user: user_schema.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
+    if not ledger or ledger.user_id != user.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Ledger not found"
+        )
+
+    try:
+        return current_month_overview_crud.get_current_month_overview(
+            db=db, ledger_id=ledger_id
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error generating overview: {str(e)}",
         )

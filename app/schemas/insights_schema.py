@@ -23,3 +23,16 @@ class CategorySummary(BaseModel):
 class IncomeExpenseTrendResponse(BaseModel):
     trend_data: List[TrendDataPoint]
     summary: dict[Literal["income", "expense"], CategorySummary]
+
+
+class CategoryBreakdown(BaseModel):
+    name: str
+    value: float
+    children: Optional[List["CategoryBreakdown"]] = None
+
+
+class MonthOverviewResponse(BaseModel):
+    total_income: float
+    total_expense: float
+    income_categories_breakdown: List[CategoryBreakdown]
+    expense_categories_breakdown: List[CategoryBreakdown]
