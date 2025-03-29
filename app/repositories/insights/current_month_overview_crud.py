@@ -44,20 +44,12 @@ def get_current_month_overview(db: Session, ledger_id: int):
 
     # Calculate total income and expense
     def calculate_totals():
-        # Regular transactions
         income = expense = Decimal(0)
         for t in base_transaction_query.filter(Transaction.is_split == False).all():
             if t.category and t.category.type == "income":
                 income += t.credit
             elif t.category and t.category.type == "expense":
                 expense += t.debit - t.credit
-
-        # Split transactions
-        for split in base_split_query.all():
-            if split.category.type == "income":
-                income += split.credit
-            elif split.category.type == "expense":
-                expense += split.debit - split.credit
 
         return float(income), float(expense)
 
