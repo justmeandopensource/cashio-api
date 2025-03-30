@@ -28,6 +28,8 @@ def get_categories_by_username(
     if ignore_group:
         query = query.filter(Category.is_group == False)
 
+    query = query.order_by(Category.name.asc())
+
     categories = query.all()
     return categories
 
@@ -73,6 +75,7 @@ def create_category(db: Session, user_id: int, category: CategoryCreate):
     db.add(db_category)
     db.commit()
     db.refresh(db_category)
+
     return db_category
 
 
@@ -82,6 +85,10 @@ def get_group_categories_by_type(
     query = db.query(Category).filter(
         Category.user_id == user_id, Category.is_group == True
     )
+
     if category_type:
         query = query.filter(Category.type == category_type)
+
+    query = query.order_by(Category.name.asc())
+
     return query.all()
