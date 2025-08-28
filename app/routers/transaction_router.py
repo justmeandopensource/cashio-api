@@ -54,6 +54,50 @@ def get_transactions_by_account(
     }
 
 
+@transaction_Router.get(
+    "/{ledger_id}/transaction/{transaction_id}",
+    response_model=transaction_schema.Transaction,
+    tags=["transactions"],
+)
+def get_transaction_by_id(
+    ledger_id: int,
+    transaction_id: int,
+    user: user_schema.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
+    if not ledger or ledger.user_id != user.user_id:
+        raise HTTPException(status_code=404, detail="Ledger not found")
+
+    transaction = transaction_crud.get_transaction_by_id(
+        db=db, transaction_id=transaction_id
+    )
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+
+    return {
+        "transaction_id": transaction.transaction_id,
+        "account_id": transaction.account_id,
+        "category_id": transaction.category_id,
+        "category_name": (
+            transaction.category.name if transaction.category else None
+        ),
+        "credit": transaction.credit,
+        "debit": transaction.debit,
+        "date": transaction.date,
+        "notes": transaction.notes,
+        "is_split": transaction.is_split,
+        "is_transfer": transaction.is_transfer,
+        "transfer_id": str(transaction.transfer_id),
+        "transfer_type": transaction.transfer_type,
+        "created_at": transaction.created_at,
+        "tags": [
+            {"tag_id": tag.tag_id, "user_id": tag.user_id, "name": tag.name}
+            for tag in transaction.tags
+        ],
+    }
+
+
 @transaction_Router.post(
     "/{ledger_id}/transaction/income",
     response_model=transaction_schema.Transaction,
@@ -126,6 +170,9 @@ def add_transfer_transaction(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     return {"message": "Transfer completed successfully"}
+
+
+
 
 
 @transaction_Router.get(
@@ -236,6 +283,37 @@ def delete_transaction(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     return {"message": "Transaction deleted successfully"}
+
+
+@transaction_Router.put(
+    "/{ledger_id}/transaction/{transaction_id}",
+    response_model=transaction_schema.Transaction,
+    tags=["transactions"],
+)
+def update_transaction(
+    ledger_id: int,
+    transaction_id: int,
+    transaction_update: transaction_schema.TransactionUpdate,
+    user: user_schema.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # Ensure the ledger belongs to the user
+    ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
+    if not ledger or ledger.user_id != user.user_id:
+        raise HTTPException(status_code=404, detail="Ledger not found")
+
+    # Update the transaction
+    try:
+        return transaction_crud.update_transaction(
+            db=db,
+            transaction_id=transaction_id,
+            transaction_update=transaction_update,
+            user_id=user.user_id,
+        )
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @transaction_Router.get(

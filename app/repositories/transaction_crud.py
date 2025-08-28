@@ -10,7 +10,7 @@ from app.models.model import (Account, Category, Ledger, Tag, Transaction,
                               TransactionSplit, TransactionTag)
 from app.schemas.transaction_schema import (TransactionCreate,
                                             TransactionSplitResponse,
-                                            TransferCreate)
+                                            TransactionUpdate, TransferCreate)
 
 
 def get_transactions_for_account_id(
@@ -60,6 +60,18 @@ def get_transactions_for_account_id(
 
 def get_transactions_count_for_account_id(db: Session, account_id: int):
     return db.query(Transaction).filter(Transaction.account_id == account_id).count()
+
+
+def get_transaction_by_id(db: Session, transaction_id: int):
+    transaction = (
+        db.query(Transaction)
+        .options(joinedload(Transaction.category), joinedload(Transaction.tags))
+        .filter(Transaction.transaction_id == transaction_id)
+        .first()
+    )
+
+    return transaction
+
 
 
 def create_transaction(db: Session, transaction: TransactionCreate):
@@ -483,15 +495,27 @@ def update_account_balance(
     if transaction.credit > 0 and transaction.debit == 0:
         # This is an income transaction
         if "asset" in account.type:
-            account.balance -= transaction.credit
+            if reverse:
+                account.balance -= transaction.credit
+            else:
+                account.balance += transaction.credit
         elif "liability" in account.type:
-            account.balance += transaction.credit
+            if reverse:
+                account.balance += transaction.credit
+            else:
+                account.balance -= transaction.credit
     elif transaction.debit > 0 and transaction.credit == 0:
         # This is an expense transaction
         if "asset" in account.type:
-            account.balance += transaction.debit
+            if reverse:
+                account.balance += transaction.debit
+            else:
+                account.balance -= transaction.debit
         elif "liability" in account.type:
-            account.balance -= transaction.debit
+            if reverse:
+                account.balance -= transaction.debit
+            else:
+                account.balance += transaction.debit
     else:
         # Handle cases where both credit and debit are non-zero (if applicable)
         raise HTTPException(
@@ -636,3 +660,111 @@ def get_transactions_count_for_ledger_id(
         query = query.filter(Transaction.account_id == account_id)
 
     return query.count()
+
+
+def update_transaction(
+    db: Session,
+    transaction_id: int,
+    transaction_update: TransactionUpdate,
+    user_id: int,
+):
+    # Fetch the existing transaction
+    db_transaction = (
+        db.query(Transaction)
+        .filter(Transaction.transaction_id == transaction_id)
+        .first()
+    )
+    if not db_transaction:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found"
+        )
+
+    # Verify that the user has access to the account associated with the transaction
+    account = (
+        db.query(Account)
+        .filter(Account.account_id == db_transaction.account_id)
+        .first()
+    )
+    if not account or account.ledger.user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied to the account associated with this transaction.",
+        )
+
+    # Store the original transaction values (not as a Transaction object)
+    original_credit = db_transaction.credit
+    original_debit = db_transaction.debit
+    original_account_id = db_transaction.account_id
+
+    # Reverse the impact of the original transaction on the account balance
+    # Create a temporary transaction-like object for reversal
+    class TempTransaction:
+        def __init__(self, credit, debit, account_id):
+            self.credit = credit
+            self.debit = debit
+            self.account_id = account_id
+    
+    temp_original = TempTransaction(original_credit, original_debit, original_account_id)
+    update_account_balance(db, temp_original, reverse=True)
+
+    # Update transaction fields
+    update_data = transaction_update.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        if key == "splits":
+            # Handle splits separately
+            continue
+        if key == "tags":
+            # Handle tags separately
+            continue
+        setattr(db_transaction, key, value)
+
+    # Handle splits
+    if "splits" in update_data and transaction_update.splits is not None:
+        # Delete existing splits
+        db.query(TransactionSplit).filter(
+            TransactionSplit.transaction_id == transaction_id
+        ).delete()
+
+        # Create new splits
+        for split_data in transaction_update.splits:
+            # Convert the split_data (Pydantic model) to a dictionary
+            split_dict = split_data.dict()
+            # Create a TransactionSplit instance
+            split = TransactionSplit(
+                transaction_id=transaction_id,
+                category_id=split_dict.get("category_id"),
+                credit=Decimal(str(split_dict.get("credit", 0))),
+                debit=Decimal(str(split_dict.get("debit", 0))),
+                notes=split_dict.get("notes")
+            )
+            db.add(split)
+
+    # Handle tags
+    if "tags" in update_data and transaction_update.tags is not None:
+        # Clear existing tags
+        db.query(TransactionTag).filter(
+            TransactionTag.transaction_id == transaction_id
+        ).delete()
+
+        # Add new tags
+        for tag_data in transaction_update.tags:
+            tag = (
+                db.query(Tag)
+                .filter(Tag.name == tag_data.name, Tag.user_id == user_id)
+                .first()
+            )
+            if not tag:
+                tag = Tag(name=tag_data.name, user_id=user_id)
+                db.add(tag)
+                db.flush()
+            db.add(
+                TransactionTag(transaction_id=transaction_id, tag_id=tag.tag_id)
+            )
+
+    db.commit()
+    db.refresh(db_transaction)
+
+    # Apply the impact of the updated transaction on the account balance
+    update_account_balance(db, db_transaction)
+
+    return db_transaction

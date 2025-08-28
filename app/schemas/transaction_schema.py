@@ -45,6 +45,26 @@ class TransactionCreate(BaseModel):
     tags: Optional[List[TagCreate]] = None
 
 
+class TransactionSplitUpdate(BaseModel):
+    category_id: Optional[int] = None
+    credit: Optional[float] = None
+    debit: Optional[float] = None
+    notes: Optional[str] = None
+
+
+class TransactionUpdate(BaseModel):
+    account_id: Optional[int] = None
+    category_id: Optional[int] = None
+    type: Optional[Literal["income", "expense"]] = None
+    credit: Optional[float] = None
+    debit: Optional[float] = None
+    date: Optional[datetime] = None
+    notes: Optional[str] = None
+    is_split: Optional[bool] = None
+    splits: Optional[List[TransactionSplitUpdate]] = None
+    tags: Optional[List[TagCreate]] = None
+
+
 class Transaction(BaseModel, str_strip_whitespace=True):
     transaction_id: int
     account_id: int
@@ -82,6 +102,9 @@ class TransferCreate(BaseModel):
     date: datetime
     notes: Optional[str] = None
     tags: Optional[List[TagCreate]] = None
+
+
+
 
 
 class TransferTransactionResponse(BaseModel):

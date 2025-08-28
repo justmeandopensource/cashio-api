@@ -15,9 +15,6 @@ def get_current_month_overview(db: Session, ledger_id: int):
     last_day = (first_day + timedelta(days=32)).replace(day=1) - timedelta(days=1)
     last_day = last_day.replace(hour=23, minute=59, second=59, microsecond=999999)
 
-    print(f"first day is {first_day}")
-    print(f"last day is {last_day}")
-
     # Base query for transactions in current month (excluding transfers)
     base_transaction_query = (
         db.query(Transaction)
