@@ -31,6 +31,17 @@ class TokenResponse(BaseModel):
 class UserProfile(BaseModel):
     full_name: str
     email: str
+    username: str
 
     class Config:
         from_attributes = True
+
+
+class UserUpdate(BaseModel):
+    full_name: str | None = None
+    email: str | None = None
+
+
+class ChangePassword(BaseModel):
+    current_password: str
+    new_password: str

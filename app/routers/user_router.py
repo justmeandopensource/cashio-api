@@ -67,3 +67,36 @@ async def read_users_me(
     db: Session = Depends(get_db)
 ):
     return user_crud.get_user_by_id(db=db, user_id=current_user.user_id)
+
+
+@user_Router.put("/me", response_model=user_schema.UserProfile, tags=["users"])
+async def update_user_profile(
+    user_update: user_schema.UserUpdate,
+    current_user: user_schema.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    updated_user = user_crud.update_user(
+        db=db,
+        user_id=current_user.user_id,
+        full_name=user_update.full_name,
+        email=user_update.email,
+    )
+    if not updated_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return updated_user
+
+
+@user_Router.put("/change-password", tags=["users"])
+async def change_password(
+    password_data: user_schema.ChangePassword,
+    current_user: user_schema.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    user = authenticate_user(current_user.username, password_data.current_password, db)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect current password",
+        )
+    user_crud.update_password(db=db, user_id=current_user.user_id, new_password=password_data.new_password)
+    return {"message": "Password updated successfully"}

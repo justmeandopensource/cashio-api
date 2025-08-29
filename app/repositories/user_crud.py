@@ -25,3 +25,24 @@ def create_user(db: Session, user: UserCreate):
 
 def get_user_by_id(db: Session, user_id: int):
     return db.query(User).filter(User.user_id == user_id).first()
+
+
+def update_user(db: Session, user_id: int, full_name: str = None, email: str = None):
+    db_user = db.query(User).filter(User.user_id == user_id).first()
+    if db_user:
+        if full_name is not None:
+            db_user.full_name = full_name
+        if email is not None:
+            db_user.email = email
+        db.commit()
+        db.refresh(db_user)
+    return db_user
+
+
+def update_password(db: Session, user_id: int, new_password: str):
+    db_user = db.query(User).filter(User.user_id == user_id).first()
+    if db_user:
+        db_user.hashed_password = hash_password(new_password)
+        db.commit()
+        db.refresh(db_user)
+    return db_user
