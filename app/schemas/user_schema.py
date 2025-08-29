@@ -26,3 +26,11 @@ class User(UserBase, str_strip_whitespace=True):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str
+
+
+class UserProfile(BaseModel):
+    full_name: str
+    email: str
+
+    class Config:
+        from_attributes = True

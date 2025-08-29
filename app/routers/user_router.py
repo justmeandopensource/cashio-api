@@ -10,6 +10,7 @@ from app.security.user_security import (
     create_access_token,
     oauth2_scheme,
     verify_token,
+    get_current_user,
 )
 
 user_Router = APIRouter(prefix="/user")
@@ -58,3 +59,11 @@ async def verify_user_token(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred while verifying the token.",
         )
+
+
+@user_Router.get("/me", response_model=user_schema.UserProfile, tags=["users"])
+async def read_users_me(
+    current_user: user_schema.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    return user_crud.get_user_by_id(db=db, user_id=current_user.user_id)
