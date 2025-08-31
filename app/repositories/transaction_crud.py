@@ -581,7 +581,12 @@ def get_transactions_for_ledger_id(
         else:
             query = query.filter(Transaction.tags.any(Tag.name.in_(tags)))
     if search_text:
-        query = query.filter(Transaction.notes.ilike(f"%{search_text}%"))
+        query = query.outerjoin(TransactionSplit, Transaction.transaction_id == TransactionSplit.transaction_id)
+        query = query.filter(
+            (Transaction.notes.ilike(f"%{search_text}%")) |
+            (TransactionSplit.notes.ilike(f"%{search_text}%"))
+        )
+        query = query.group_by(Transaction.transaction_id)
     if transaction_type:
         if transaction_type == "income":
             query = query.filter(Transaction.credit > 0)
@@ -650,7 +655,12 @@ def get_transactions_count_for_ledger_id(
         else:
             query = query.filter(Transaction.tags.any(Tag.name.in_(tags)))
     if search_text:
-        query = query.filter(Transaction.notes.ilike(f"%{search_text}%"))
+        query = query.outerjoin(TransactionSplit, Transaction.transaction_id == TransactionSplit.transaction_id)
+        query = query.filter(
+            (Transaction.notes.ilike(f"%{search_text}%")) |
+            (TransactionSplit.notes.ilike(f"%{search_text}%"))
+        )
+        query = query.distinct(Transaction.transaction_id)
     if transaction_type:
         if transaction_type == "income":
             query = query.filter(Transaction.credit > 0)
