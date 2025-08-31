@@ -373,7 +373,7 @@ def get_transactions_by_ledger(
         None, description="Filter transactions by search text in notes"
     ),
     transaction_type: Optional[str] = Query(
-        None, description="Filter transactions by type (income/expense)"
+        None, description="Filter transactions by type (income/expense/transfer)"
     ),
     user: user_schema.User = Depends(get_current_user),
     db: Session = Depends(get_db),

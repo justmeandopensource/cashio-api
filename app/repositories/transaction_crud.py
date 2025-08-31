@@ -589,9 +589,11 @@ def get_transactions_for_ledger_id(
         query = query.group_by(Transaction.transaction_id)
     if transaction_type:
         if transaction_type == "income":
-            query = query.filter(Transaction.credit > 0)
+            query = query.filter(Transaction.credit > 0, Transaction.is_transfer == False)
         elif transaction_type == "expense":
-            query = query.filter(Transaction.debit > 0)
+            query = query.filter(Transaction.debit > 0, Transaction.is_transfer == False)
+        elif transaction_type == "transfer":
+            query = query.filter(Transaction.is_transfer == True)
     if account_id:  # Add this filter
         query = query.filter(Transaction.account_id == account_id)
 
@@ -663,9 +665,11 @@ def get_transactions_count_for_ledger_id(
         query = query.distinct(Transaction.transaction_id)
     if transaction_type:
         if transaction_type == "income":
-            query = query.filter(Transaction.credit > 0)
+            query = query.filter(Transaction.credit > 0, Transaction.is_transfer == False)
         elif transaction_type == "expense":
-            query = query.filter(Transaction.debit > 0)
+            query = query.filter(Transaction.debit > 0, Transaction.is_transfer == False)
+        elif transaction_type == "transfer":
+            query = query.filter(Transaction.is_transfer == True)
     if account_id:  # Add this filter
         query = query.filter(Transaction.account_id == account_id)
 
