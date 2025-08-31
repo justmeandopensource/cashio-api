@@ -16,3 +16,8 @@ class Ledger(LedgerCreate, str_strip_whitespace=True):
 
     class Config:
         from_attributes = True
+
+
+class LedgerUpdate(BaseModel, str_strip_whitespace=True):
+    name: str | None = None
+    currency_symbol: str | None = None

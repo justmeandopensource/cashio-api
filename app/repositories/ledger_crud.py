@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.models.model import Ledger
 from app.repositories.user_crud import get_user_by_username
-from app.schemas.ledger_schema import LedgerCreate
+from app.schemas.ledger_schema import LedgerCreate, LedgerUpdate
 
 
 def create_ledger(db: Session, user_id: int, ledger: LedgerCreate):
@@ -38,3 +38,43 @@ def get_ledgers_by_username(db: Session, username: str):
 
 def get_ledger_by_id(db: Session, ledger_id: int):
     return db.query(Ledger).filter(Ledger.ledger_id == ledger_id).first()
+
+
+def update_ledger(
+    db: Session, ledger_id: int, user_id: int, ledger_update: LedgerUpdate
+):
+    db_ledger = (
+        db.query(Ledger)
+        .filter(Ledger.ledger_id == ledger_id, Ledger.user_id == user_id)
+        .first()
+    )
+
+    if not db_ledger:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Ledger not found"
+        )
+
+    if ledger_update.name is not None:
+        # Check if the new name already exists for the user's other ledgers
+        existing_ledger_with_name = (
+            db.query(Ledger)
+            .filter(
+                Ledger.user_id == user_id,
+                Ledger.name == ledger_update.name,
+                Ledger.ledger_id != ledger_id,
+            )
+            .first()
+        )
+        if existing_ledger_with_name:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Ledger name already exists for this user",
+            )
+        db_ledger.name = ledger_update.name
+
+    if ledger_update.currency_symbol is not None:
+        db_ledger.currency_symbol = ledger_update.currency_symbol
+
+    db.commit()
+    db.refresh(db_ledger)
+    return db_ledger
