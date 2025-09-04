@@ -1,5 +1,6 @@
 from typing import List
 
+from pydantic import computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -9,13 +10,16 @@ class Settings(BaseSettings):
     DOMAIN: str = "localhost"
 
     # database
-    POSTGRES_USER: str = "test"
-    POSTGRES_PASSWORD: str = "test"
-    POSTGRES_DB: str = "test"
-    POSTGRES_HOST: str = "host"
-    POSTGRES_PORT: int = 5432
+    POSTGRES_USER: str
+    POSTGRES_PASSWORD: str
+    POSTGRES_DB: str
+    POSTGRES_HOST: str
+    POSTGRES_PORT: int
 
-    SQLALCHEMY_DATABASE_URL: str = "postgresql://test:test@host:5432/db"
+    @computed_field
+    @property
+    def SQLALCHEMY_DATABASE_URL(self) -> str:
+        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
     ALLOWED_ORIGINS: List[str] = ["http://localhost:5173"]
 
