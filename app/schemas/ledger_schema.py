@@ -6,6 +6,8 @@ from pydantic import BaseModel
 class LedgerCreate(BaseModel, str_strip_whitespace=True):
     name: str
     currency_symbol: str
+    description: str | None = None
+    notes: str | None = None
 
 
 class Ledger(LedgerCreate, str_strip_whitespace=True):
@@ -21,3 +23,5 @@ class Ledger(LedgerCreate, str_strip_whitespace=True):
 class LedgerUpdate(BaseModel, str_strip_whitespace=True):
     name: str | None = None
     currency_symbol: str | None = None
+    description: str | None = None
+    notes: str | None = None

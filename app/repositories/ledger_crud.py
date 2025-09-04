@@ -20,7 +20,11 @@ def create_ledger(db: Session, user_id: int, ledger: LedgerCreate):
         )
 
     db_ledger = Ledger(
-        user_id=user_id, name=ledger.name, currency_symbol=ledger.currency_symbol
+        user_id=user_id,
+        name=ledger.name,
+        currency_symbol=ledger.currency_symbol,
+        description=ledger.description,
+        notes=ledger.notes,
     )
 
     db.add(db_ledger)
@@ -74,6 +78,12 @@ def update_ledger(
 
     if ledger_update.currency_symbol is not None:
         db_ledger.currency_symbol = ledger_update.currency_symbol
+
+    if ledger_update.description is not None:
+        db_ledger.description = ledger_update.description
+
+    if ledger_update.notes is not None:
+        db_ledger.notes = ledger_update.notes
 
     db.commit()
     db.refresh(db_ledger)
