@@ -1,3 +1,4 @@
+from datetime import datetime
 from sqlalchemy.orm import Session
 
 from app.models.model import User
@@ -34,6 +35,8 @@ def update_user(db: Session, user_id: int, full_name: str = None, email: str = N
             db_user.full_name = full_name
         if email is not None:
             db_user.email = email
+        # Update the updated_at timestamp to current local time
+        db_user.updated_at = datetime.now()
         db.commit()
         db.refresh(db_user)
     return db_user
@@ -43,6 +46,8 @@ def update_password(db: Session, user_id: int, new_password: str):
     db_user = db.query(User).filter(User.user_id == user_id).first()
     if db_user:
         db_user.hashed_password = hash_password(new_password)
+        # Update the updated_at timestamp to current local time
+        db_user.updated_at = datetime.now()
         db.commit()
         db.refresh(db_user)
     return db_user

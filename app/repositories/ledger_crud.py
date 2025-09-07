@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -84,6 +86,8 @@ def update_ledger(
 
     if ledger_update.notes is not None:
         db_ledger.notes = ledger_update.notes
+
+    db_ledger.updated_at = datetime.now()
 
     db.commit()
     db.refresh(db_ledger)
