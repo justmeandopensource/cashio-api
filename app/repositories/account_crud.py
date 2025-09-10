@@ -47,6 +47,8 @@ def create_account(db: Session, ledger_id: int, account: AccountCreate):
         opening_balance=account.opening_balance,
         net_balance=account.opening_balance,
         parent_account_id=account.parent_account_id,
+        description=account.description,
+        notes=account.notes,
         created_at=datetime.now(),
         updated_at=datetime.now(),
     )
@@ -127,6 +129,10 @@ def update_account(db: Session, account_id: int, account_update: AccountUpdate):
         db_account.net_balance = db_account.opening_balance + db_account.balance
     if account_update.parent_account_id is not None:
         db_account.parent_account_id = account_update.parent_account_id
+    if account_update.description is not None:
+        db_account.description = account_update.description
+    if account_update.notes is not None:
+        db_account.notes = account_update.notes
 
     db_account.updated_at = datetime.now()
 
