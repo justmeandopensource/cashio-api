@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from datetime import datetime, timezone
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -87,7 +88,7 @@ def update_ledger(
     if ledger_update.notes is not None:
         db_ledger.notes = ledger_update.notes
 
-    db_ledger.updated_at = datetime.now()
+    db_ledger.updated_at = datetime.now(timezone.utc)
 
     db.commit()
     db.refresh(db_ledger)
