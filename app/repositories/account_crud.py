@@ -49,8 +49,8 @@ def create_account(db: Session, ledger_id: int, account: AccountCreate):
         parent_account_id=account.parent_account_id,
         description=account.description,
         notes=account.notes,
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc),
+        created_at=datetime.now(),
+        updated_at=datetime.now(),
     )
 
     db.add(db_account)
@@ -134,7 +134,7 @@ def update_account(db: Session, account_id: int, account_update: AccountUpdate):
     if account_update.notes is not None:
         db_account.notes = account_update.notes
 
-    db_account.updated_at = datetime.now(timezone.utc)
+    db_account.updated_at = datetime.now()
 
     db.commit()
     db.refresh(db_account)
