@@ -88,6 +88,7 @@ def get_transaction_by_id(
         "notes": transaction.notes,
         "is_split": transaction.is_split,
         "is_transfer": transaction.is_transfer,
+        "is_asset_transaction": transaction.is_asset_transaction,
         "transfer_id": str(transaction.transfer_id),
         "transfer_type": transaction.transfer_type,
         "created_at": transaction.created_at,

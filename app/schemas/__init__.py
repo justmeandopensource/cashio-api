@@ -1,0 +1,1 @@
+from .physical_assets_schema import *

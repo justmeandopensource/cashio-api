@@ -17,6 +17,7 @@ from app.routers import (
     transaction_router,
     user_router,
 )
+from app.routers.physical_assets_router import physical_assets_router
 from app.version import __version__
 
 
@@ -45,6 +46,7 @@ app.include_router(transaction_router.transaction_Router)
 app.include_router(tag_router.tag_Router)
 app.include_router(category_router.category_Router)
 app.include_router(insights_router.insights_router)
+app.include_router(physical_assets_router)
 app.include_router(system_router.system_Router)
 
 if __name__ == "__main__":

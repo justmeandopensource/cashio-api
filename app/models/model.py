@@ -48,6 +48,9 @@ class Ledger(Base):
 
     user = relationship("User", back_populates="ledgers")
     accounts = relationship("Account", back_populates="ledger")
+    asset_types = relationship("AssetType", back_populates="ledger")
+    physical_assets = relationship("PhysicalAsset", back_populates="ledger")
+    asset_transactions = relationship("AssetTransaction", back_populates="ledger")
 
     __table_args__ = (UniqueConstraint("user_id", "name", name="uq_user_ledger_name"),)
 
@@ -77,6 +80,7 @@ class Account(Base):
     )
     child_accounts = relationship("Account", back_populates="parent_account")
     transactions = relationship("Transaction", back_populates="account")
+    asset_transactions = relationship("AssetTransaction", back_populates="account")
 
     __table_args__ = (
         UniqueConstraint("ledger_id", "name", name="uq_ledger_account_name"),
@@ -118,6 +122,7 @@ class Transaction(Base):
     notes = Column(String(500), nullable=True)
     is_split = Column(Boolean, default=False, nullable=False)
     is_transfer = Column(Boolean, default=False, nullable=False)
+    is_asset_transaction = Column(Boolean, default=False, nullable=False)
     transfer_id = Column(UUID, nullable=True)
     transfer_type = Column(
         Enum("source", "destination", name="transfer_type"), nullable=True
@@ -191,4 +196,98 @@ class TransactionTag(Base):
         Index("idx_transaction_tags_transaction_id", "transaction_id"),
         Index("idx_transaction_tags_tag_id", "tag_id"),
         Index("idx_transaction_tags_transaction_id_tag_id", "transaction_id", "tag_id"),
+    )
+
+
+class AssetType(Base):
+    __tablename__ = "asset_types"
+
+    asset_type_id = Column(Integer, primary_key=True)
+    ledger_id = Column(Integer, ForeignKey("ledgers.ledger_id"), nullable=False)
+    name = Column(String(100), nullable=False)  # "Gold", "Silver", "Platinum"
+    unit_name = Column(String(50), nullable=False)  # "grams", "kilograms", "ounces"
+    unit_symbol = Column(String(10), nullable=False)  # "g", "kg", "oz"
+    description = Column(String(500), nullable=True)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+
+    ledger = relationship("Ledger", back_populates="asset_types")
+    physical_assets = relationship("PhysicalAsset", back_populates="asset_type")
+
+    __table_args__ = (
+        UniqueConstraint("ledger_id", "name", name="uq_ledger_asset_type_name"),
+        Index("idx_asset_types_ledger_id", "ledger_id"),
+    )
+
+
+class PhysicalAsset(Base):
+    __tablename__ = "physical_assets"
+
+    physical_asset_id = Column(Integer, primary_key=True)
+    ledger_id = Column(Integer, ForeignKey("ledgers.ledger_id"), nullable=False)
+    asset_type_id = Column(
+        Integer, ForeignKey("asset_types.asset_type_id"), nullable=False
+    )
+    name = Column(String(100), nullable=False)  # "My Gold Collection"
+    total_quantity = Column(
+        Numeric(15, 6), default=0, nullable=False
+    )  # Total units owned
+    average_cost_per_unit = Column(
+        Numeric(15, 2), default=0, nullable=False
+    )  # Average cost per unit
+    latest_price_per_unit = Column(
+        Numeric(15, 2), default=0, nullable=False
+    )  # Manual latest price
+    last_price_update = Column(DateTime, nullable=True)  # When price was last updated
+    current_value = Column(
+        Numeric(15, 2), default=0, nullable=False
+    )  # Auto-calculated: quantity * latest_price
+    notes = Column(String(500), nullable=True)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc))
+
+    ledger = relationship("Ledger", back_populates="physical_assets")
+    asset_type = relationship("AssetType", back_populates="physical_assets")
+    asset_transactions = relationship(
+        "AssetTransaction", back_populates="physical_asset"
+    )
+
+    __table_args__ = (
+        UniqueConstraint("ledger_id", "name", name="uq_ledger_physical_asset_name"),
+        Index("idx_physical_assets_ledger_id", "ledger_id"),
+        Index("idx_physical_assets_asset_type_id", "asset_type_id"),
+    )
+
+
+class AssetTransaction(Base):
+    __tablename__ = "asset_transactions"
+
+    asset_transaction_id = Column(Integer, primary_key=True)
+    ledger_id = Column(Integer, ForeignKey("ledgers.ledger_id"), nullable=False)
+    physical_asset_id = Column(
+        Integer, ForeignKey("physical_assets.physical_asset_id"), nullable=False
+    )
+    transaction_type = Column(
+        Enum("buy", "sell", name="asset_transaction_type"), nullable=False
+    )
+    quantity = Column(Numeric(15, 6), nullable=False)
+    price_per_unit = Column(Numeric(15, 2), nullable=False)
+    total_amount = Column(Numeric(15, 2), nullable=False)
+    account_id = Column(Integer, ForeignKey("accounts.account_id"), nullable=False)
+    financial_transaction_id = Column(
+        Integer, ForeignKey("transactions.transaction_id"), nullable=False
+    )
+    transaction_date = Column(DateTime, nullable=False)
+    notes = Column(String(500), nullable=True)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+
+    ledger = relationship("Ledger", back_populates="asset_transactions")
+    physical_asset = relationship("PhysicalAsset", back_populates="asset_transactions")
+    account = relationship("Account", back_populates="asset_transactions")
+    financial_transaction = relationship("Transaction")
+
+    __table_args__ = (
+        Index("idx_asset_transactions_ledger_id", "ledger_id"),
+        Index("idx_asset_transactions_asset_id", "physical_asset_id"),
+        Index("idx_asset_transactions_account_id", "account_id"),
+        Index("idx_asset_transactions_date", "transaction_date"),
     )

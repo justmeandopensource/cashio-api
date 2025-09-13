@@ -41,6 +41,7 @@ class TransactionCreate(BaseModel):
     transfer_id: Optional[str]
     transfer_type: Optional[str]
     is_split: bool = False
+    is_asset_transaction: bool = False
     splits: Optional[List[TransactionSplitCreate]] = None
     tags: Optional[List[TagCreate]] = None
 
@@ -61,6 +62,7 @@ class TransactionUpdate(BaseModel):
     date: Optional[datetime] = None
     notes: Optional[str] = None
     is_split: Optional[bool] = None
+    is_asset_transaction: Optional[bool] = None
     splits: Optional[List[TransactionSplitUpdate]] = None
     tags: Optional[List[TagCreate]] = None
 
@@ -77,6 +79,7 @@ class Transaction(BaseModel, str_strip_whitespace=True):
     notes: Optional[str]
     is_split: bool
     is_transfer: bool
+    is_asset_transaction: bool
     transfer_id: Optional[str]
     transfer_type: Optional[str]
     created_at: datetime
