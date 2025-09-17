@@ -80,6 +80,7 @@ class Transaction(BaseModel, str_strip_whitespace=True):
     is_split: bool
     is_transfer: bool
     is_asset_transaction: bool
+    is_mf_transaction: bool
     transfer_id: Optional[str]
     transfer_type: Optional[str]
     created_at: datetime

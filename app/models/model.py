@@ -51,6 +51,9 @@ class Ledger(Base):
     asset_types = relationship("AssetType", back_populates="ledger")
     physical_assets = relationship("PhysicalAsset", back_populates="ledger")
     asset_transactions = relationship("AssetTransaction", back_populates="ledger")
+    amcs = relationship("Amc", back_populates="ledger")
+    mutual_funds = relationship("MutualFund", back_populates="ledger")
+    mf_transactions = relationship("MfTransaction", back_populates="ledger")
 
     __table_args__ = (UniqueConstraint("user_id", "name", name="uq_user_ledger_name"),)
 
@@ -81,6 +84,7 @@ class Account(Base):
     child_accounts = relationship("Account", back_populates="parent_account")
     transactions = relationship("Transaction", back_populates="account")
     asset_transactions = relationship("AssetTransaction", back_populates="account")
+    mf_transactions = relationship("MfTransaction", back_populates="account")
 
     __table_args__ = (
         UniqueConstraint("ledger_id", "name", name="uq_ledger_account_name"),
@@ -123,6 +127,7 @@ class Transaction(Base):
     is_split = Column(Boolean, default=False, nullable=False)
     is_transfer = Column(Boolean, default=False, nullable=False)
     is_asset_transaction = Column(Boolean, default=False, nullable=False)
+    is_mf_transaction = Column(Boolean, default=False, nullable=False)
     transfer_id = Column(UUID, nullable=True)
     transfer_type = Column(
         Enum("source", "destination", name="transfer_type"), nullable=True
@@ -285,9 +290,110 @@ class AssetTransaction(Base):
     account = relationship("Account", back_populates="asset_transactions")
     financial_transaction = relationship("Transaction")
 
+
+class Amc(Base):
+    __tablename__ = "amcs"
+
+    amc_id = Column(Integer, primary_key=True)
+    ledger_id = Column(Integer, ForeignKey("ledgers.ledger_id"), nullable=False)
+    name = Column(String(100), nullable=False)  # "HDFC", "ICICI", "SBI"
+    description = Column(String(500), nullable=True)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+
+    ledger = relationship("Ledger", back_populates="amcs")
+    mutual_funds = relationship("MutualFund", back_populates="amc")
+
     __table_args__ = (
-        Index("idx_asset_transactions_ledger_id", "ledger_id"),
-        Index("idx_asset_transactions_asset_id", "physical_asset_id"),
-        Index("idx_asset_transactions_account_id", "account_id"),
-        Index("idx_asset_transactions_date", "transaction_date"),
+        UniqueConstraint("ledger_id", "name", name="uq_ledger_amc_name"),
+        Index("idx_amcs_ledger_id", "ledger_id"),
+    )
+
+
+class MutualFund(Base):
+    __tablename__ = "mutual_funds"
+
+    mutual_fund_id = Column(Integer, primary_key=True)
+    ledger_id = Column(Integer, ForeignKey("ledgers.ledger_id"), nullable=False)
+    amc_id = Column(
+        Integer, ForeignKey("amcs.amc_id"), nullable=False
+    )
+    name = Column(String(100), nullable=False)  # "HDFC Mid Cap Fund"
+    total_units = Column(
+        Numeric(15, 3), default=0, nullable=False
+    )  # Balance units held (3 decimal places)
+    average_cost_per_unit = Column(
+        Numeric(15, 2), default=0, nullable=False
+    )  # Average cost per unit
+    latest_nav = Column(
+        Numeric(15, 2), default=0, nullable=False
+    )  # Latest NAV price (2 decimal places)
+    last_nav_update = Column(DateTime, nullable=True)  # When NAV was last updated
+    current_value = Column(
+        Numeric(15, 2), default=0, nullable=False
+    )  # Auto-calculated: total_units * latest_nav
+    total_realized_gain = Column(
+        Numeric(15, 2), default=0, nullable=False
+    )  # Cumulative realized gains from sales/switches
+    total_invested_cash = Column(
+        Numeric(15, 2), default=0, nullable=False
+    )  # Total cash invested in this fund (excluding switches)
+    notes = Column(String(500), nullable=True)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=datetime.now(timezone.utc))
+
+    ledger = relationship("Ledger", back_populates="mutual_funds")
+    amc = relationship("Amc", back_populates="mutual_funds")
+    mf_transactions = relationship(
+        "MfTransaction", foreign_keys="[MfTransaction.mutual_fund_id]", back_populates="mutual_fund"
+    )
+    target_fund_transactions = relationship(
+        "MfTransaction", foreign_keys="[MfTransaction.target_fund_id]", back_populates="target_fund"
+    )
+
+    __table_args__ = (
+        UniqueConstraint("ledger_id", "name", name="uq_ledger_mutual_fund_name"),
+        Index("idx_mutual_funds_ledger_id", "ledger_id"),
+        Index("idx_mutual_funds_amc_id", "amc_id"),
+    )
+
+
+class MfTransaction(Base):
+    __tablename__ = "mf_transactions"
+
+    mf_transaction_id = Column(Integer, primary_key=True)
+    ledger_id = Column(Integer, ForeignKey("ledgers.ledger_id"), nullable=False)
+    mutual_fund_id = Column(
+        Integer, ForeignKey("mutual_funds.mutual_fund_id"), nullable=False
+    )
+    transaction_type = Column(
+        Enum("buy", "sell", "switch_out", "switch_in", name="mf_transaction_type"),
+        nullable=False,
+    )
+    units = Column(Numeric(15, 3), nullable=False)
+    nav_per_unit = Column(Numeric(15, 2), nullable=False)
+    total_amount = Column(Numeric(15, 2), nullable=False)
+    account_id = Column(Integer, ForeignKey("accounts.account_id"), nullable=True)
+    target_fund_id = Column(Integer, ForeignKey("mutual_funds.mutual_fund_id"), nullable=True)
+    financial_transaction_id = Column(
+        Integer, ForeignKey("transactions.transaction_id"), nullable=True
+    )
+    transaction_date = Column(DateTime, nullable=False)
+    notes = Column(String(500), nullable=True)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    linked_transaction_id = Column(Integer, nullable=True)
+    realized_gain = Column(Numeric(15, 2), nullable=True)
+    cost_basis_of_units_sold = Column(Numeric(15, 2), nullable=True)
+
+    ledger = relationship("Ledger", back_populates="mf_transactions")
+    mutual_fund = relationship("MutualFund", foreign_keys=[mutual_fund_id], back_populates="mf_transactions")
+    account = relationship("Account", back_populates="mf_transactions")
+    target_fund = relationship("MutualFund", foreign_keys=[target_fund_id], back_populates="target_fund_transactions")
+    financial_transaction = relationship("Transaction")
+
+    __table_args__ = (
+        Index("idx_mf_transactions_ledger_id", "ledger_id"),
+        Index("idx_mf_transactions_mutual_fund_id", "mutual_fund_id"),
+        Index("idx_mf_transactions_account_id", "account_id"),
+        Index("idx_mf_transactions_target_fund_id", "target_fund_id"),
+        Index("idx_mf_transactions_date", "transaction_date"),
     )
