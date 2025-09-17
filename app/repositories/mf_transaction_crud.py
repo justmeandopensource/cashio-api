@@ -53,12 +53,19 @@ def create_mf_transaction(
 
             # Create financial transaction
             transaction_type_financial = "debit" if transaction_data.transaction_type == "buy" else "credit"
+            # Generate notes for the financial transaction
+            financial_transaction_notes = ""
+            if transaction_data.transaction_type == "buy":
+                financial_transaction_notes = f"MF Buy: {fund.name} {transaction_data.units} units at NAV {transaction_data.nav_per_unit}"
+            elif transaction_data.transaction_type == "sell":
+                financial_transaction_notes = f"MF Sell: {fund.name} {transaction_data.units} units at NAV {transaction_data.nav_per_unit}"
+
             financial_transaction = Transaction(
                 account_id=transaction_data.account_id,
                 credit=total_amount if transaction_type_financial == "credit" else 0,
                 debit=total_amount if transaction_type_financial == "debit" else 0,
                 date=transaction_data.transaction_date,
-                notes=transaction_data.notes,
+                notes=financial_transaction_notes,
                 is_mf_transaction=True,
             )
             db.add(financial_transaction)
@@ -258,8 +265,7 @@ def update_mf_transaction(
     if update_data.notes is not None:
         db_transaction.notes = update_data.notes
         # Also update the linked financial transaction if it exists
-        if db_transaction.financial_transaction:
-            db_transaction.financial_transaction.notes = update_data.notes
+        # The financial transaction notes are auto-generated and should not be updated here.
 
     db.commit()
     db.refresh(db_transaction)
