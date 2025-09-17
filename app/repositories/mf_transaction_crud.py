@@ -85,6 +85,7 @@ def create_mf_transaction(
                 realized_gain = total_amount - cost_basis_of_units_sold
                 fund.total_realized_gain += realized_gain
                 fund.total_invested_cash -= cost_basis_of_units_sold
+                fund.external_cash_invested -= cost_basis_of_units_sold
 
             # Update fund balances
             units_change = Decimal(str(transaction_data.units)) if transaction_data.transaction_type == "buy" else -Decimal(str(transaction_data.units))
@@ -93,6 +94,7 @@ def create_mf_transaction(
 
             if transaction_data.transaction_type == "buy":
                 fund.total_invested_cash += total_amount
+                fund.external_cash_invested += total_amount
 
             if transaction_data.transaction_type in ["buy", "sell"]:
                 fund.latest_nav = Decimal(str(transaction_data.nav_per_unit))
@@ -182,7 +184,7 @@ def create_mf_transaction(
             cost_basis_of_units_sold = Decimal(str(transaction_data.cost_basis_of_units_sold))
 
             # Update target fund balances
-            update_mutual_fund_balances(db, fund.mutual_fund_id, to_units, float(to_units * to_nav))
+            update_mutual_fund_balances(db, fund.mutual_fund_id, to_units, float(cost_basis_of_units_sold))
 
             fund.total_invested_cash += cost_basis_of_units_sold
 
@@ -299,6 +301,7 @@ def delete_mf_transaction(db: Session, mf_transaction_id: int) -> None:
         amount_change = -db_transaction.total_amount
         update_mutual_fund_balances(db, fund.mutual_fund_id, units_change, float(amount_change))
         fund.total_invested_cash -= db_transaction.total_amount
+        fund.external_cash_invested -= db_transaction.total_amount
     elif db_transaction.transaction_type == "sell":
         units_change = db_transaction.units
         amount_change = db_transaction.cost_basis_of_units_sold
@@ -306,6 +309,7 @@ def delete_mf_transaction(db: Session, mf_transaction_id: int) -> None:
         if db_transaction.realized_gain:
             fund.total_realized_gain -= db_transaction.realized_gain
         fund.total_invested_cash += db_transaction.cost_basis_of_units_sold
+        fund.external_cash_invested += db_transaction.cost_basis_of_units_sold
     elif db_transaction.transaction_type == "switch_out":
         units_change = db_transaction.units
         amount_change = db_transaction.cost_basis_of_units_sold
@@ -317,6 +321,7 @@ def delete_mf_transaction(db: Session, mf_transaction_id: int) -> None:
         units_change = -db_transaction.units
         amount_change = -db_transaction.cost_basis_of_units_sold
         update_mutual_fund_balances(db, fund.mutual_fund_id, units_change, float(amount_change))
+        fund.total_invested_cash -= db_transaction.cost_basis_of_units_sold
 
     # Delete financial transaction and update account balance
     if db_transaction.financial_transaction_id:
@@ -326,11 +331,13 @@ def delete_mf_transaction(db: Session, mf_transaction_id: int) -> None:
             if account:
                 amount = financial_transaction.credit if financial_transaction.credit > 0 else financial_transaction.debit
                 if db_transaction.transaction_type == "buy":
-                    account.balance -= amount
-                    account.net_balance -= amount
-                elif db_transaction.transaction_type == "sell":
+                    # Buy transaction originally debited the account, so when deleting we need to credit it back
                     account.balance += amount
                     account.net_balance += amount
+                elif db_transaction.transaction_type == "sell":
+                    # Sell transaction originally credited the account, so when deleting we need to debit it back
+                    account.balance -= amount
+                    account.net_balance -= amount
             db.delete(financial_transaction)
 
     # If it's a switch transaction, delete the linked transaction as well
@@ -354,6 +361,7 @@ def delete_mf_transaction(db: Session, mf_transaction_id: int) -> None:
                 update_mutual_fund_balances(db, linked_fund.mutual_fund_id, linked_units_change, float(linked_amount_change))
                 if linked_transaction.realized_gain:
                     linked_fund.total_realized_gain -= linked_transaction.realized_gain
+                linked_fund.total_invested_cash += linked_transaction.cost_basis_of_units_sold
             elif linked_transaction.transaction_type == "switch_in":
                 linked_units_change = -linked_transaction.units
                 linked_amount_change = -linked_transaction.cost_basis_of_units_sold

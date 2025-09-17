@@ -24,7 +24,8 @@ CREATE TABLE IF NOT EXISTS mutual_funds (
     last_nav_update TIMESTAMP NULL, -- When NAV was last updated
     current_value DECIMAL(15,2) DEFAULT 0, -- Auto-calculated: total_units * latest_nav
     total_realized_gain DECIMAL(15,2) DEFAULT 0, -- Cumulative realized gains from sales/switches
-    total_invested_cash DECIMAL(15,2) DEFAULT 0, -- Total cash invested in this fund (excluding switches)
+    total_invested_cash DECIMAL(15,2) DEFAULT 0, -- Total cost basis of units currently held in this fund (including switches)
+    external_cash_invested DECIMAL(15,2) DEFAULT 0, -- Total cash invested from external sources (excluding switches)
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

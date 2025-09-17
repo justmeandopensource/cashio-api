@@ -336,7 +336,10 @@ class MutualFund(Base):
     )  # Cumulative realized gains from sales/switches
     total_invested_cash = Column(
         Numeric(15, 2), default=0, nullable=False
-    )  # Total cash invested in this fund (excluding switches)
+    )  # Total cost basis of units currently held in this fund (including switches)
+    external_cash_invested = Column(
+        Numeric(15, 2), default=0, nullable=False
+    )  # Total cash invested from external sources (excluding switches)
     notes = Column(String(500), nullable=True)
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=datetime.now(timezone.utc))

@@ -69,6 +69,7 @@ class MutualFund(MutualFundCreate, str_strip_whitespace=True):
     updated_at: datetime
     total_realized_gain: float
     total_invested_cash: float
+    external_cash_invested: float
 
     # Related data
     amc: Optional[Amc] = None

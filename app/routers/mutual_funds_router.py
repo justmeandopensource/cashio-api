@@ -429,7 +429,7 @@ def switch_mutual_fund_units(
         notes=switch_data.notes,
         to_nav=switch_data.source_nav_at_switch, # This is not used in switch_in logic, but kept for schema consistency
         # linked_transaction_id will be set after both transactions are created
-        cost_basis_of_units_sold=float(switch_out_transaction.cost_basis_of_units_sold) # Pass the cost basis from the switch_out
+        cost_basis_of_units_sold=float(value_switched_out) # Pass the market value of units switched out as cost basis for switch_in
     )
     switch_in_transaction = create_mf_transaction(
         db=db, ledger_id=ledger_id, transaction_data=switch_in_transaction_data
