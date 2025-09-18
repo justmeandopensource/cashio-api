@@ -56,9 +56,9 @@ def create_mf_transaction(
             # Generate notes for the financial transaction
             financial_transaction_notes = ""
             if transaction_data.transaction_type == "buy":
-                financial_transaction_notes = f"MF Buy: {fund.name} {transaction_data.units} units at NAV {transaction_data.nav_per_unit}"
+                financial_transaction_notes = f"MF Buy: {fund.name} {transaction_data.units:.3f} units at NAV {transaction_data.nav_per_unit:.2f}"
             elif transaction_data.transaction_type == "sell":
-                financial_transaction_notes = f"MF Sell: {fund.name} {transaction_data.units} units at NAV {transaction_data.nav_per_unit}"
+                financial_transaction_notes = f"MF Sell: {fund.name} {transaction_data.units:.3f} units at NAV {transaction_data.nav_per_unit:.2f}"
 
             financial_transaction = Transaction(
                 account_id=transaction_data.account_id,
