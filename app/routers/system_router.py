@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import List
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status, UploadFile, File
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.version import __version__
@@ -239,3 +240,22 @@ async def delete_backup(
         return {"message": "Backup file deleted successfully.", "filename": filename}
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to delete file: {e}")
+
+
+@system_Router.get("/system/download-backup/{filename}", tags=["system"])
+async def download_backup(
+    filename: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Downloads a specific backup file.
+    """
+    if ".." in filename or filename.startswith("/"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid filename.")
+
+    backup_filepath = os.path.join(BACKUP_DIR, filename)
+
+    if not os.path.exists(backup_filepath):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Backup file not found.")
+
+    return FileResponse(path=backup_filepath, media_type='application/octet-stream', filename=filename)
