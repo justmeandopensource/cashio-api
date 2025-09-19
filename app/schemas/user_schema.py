@@ -32,6 +32,8 @@ class UserProfile(BaseModel):
     full_name: str
     email: str
     username: str
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True
