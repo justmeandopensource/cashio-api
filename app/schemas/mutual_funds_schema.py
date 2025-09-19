@@ -86,16 +86,22 @@ class MfTransactionBase(BaseModel, str_strip_whitespace=True):
     units: float
     nav_per_unit: float
     total_amount: float
+    amount_excluding_charges: float
+    other_charges: float
     account_id: Optional[int]
     target_fund_id: Optional[int]
     transaction_date: datetime
+    linked_charge_transaction_id: Optional[int] = None
 
 
 class MfTransactionCreate(BaseModel, str_strip_whitespace=True):
     mutual_fund_id: int = Field(..., gt=0)
     transaction_type: Literal["buy", "sell", "switch_out", "switch_in"]
     units: float = Field(..., gt=0)
-    nav_per_unit: float = Field(..., ge=0)  # Allow 0 for transfers initially
+    nav_per_unit: Optional[float] = Field(None, ge=0)  # For switches, buy/sell use amount_excluding_charges
+    amount_excluding_charges: float = Field(..., gt=0)  # For buy/sell transactions
+    other_charges: float = Field(0, ge=0)
+    expense_category_id: Optional[int] = Field(None, gt=0)
     account_id: Optional[int] = Field(None, gt=0)
     target_fund_id: Optional[int] = Field(None, gt=0)
     transaction_date: datetime
@@ -114,8 +120,11 @@ class MfTransaction(MfTransactionCreate, str_strip_whitespace=True):
     mf_transaction_id: int
     ledger_id: int
     total_amount: float
+    amount_excluding_charges: float
+    other_charges: float
     created_at: datetime
     linked_transaction_id: Optional[int] = None
+    linked_charge_transaction_id: Optional[int] = None
     realized_gain: Optional[float] = None
     cost_basis_of_units_sold: Optional[float] = None
 

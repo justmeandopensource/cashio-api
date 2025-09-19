@@ -375,11 +375,14 @@ class MfTransaction(Base):
     units = Column(Numeric(15, 3), nullable=False)
     nav_per_unit = Column(Numeric(15, 2), nullable=False)
     total_amount = Column(Numeric(15, 2), nullable=False)
+    amount_excluding_charges = Column(Numeric(15, 2), nullable=False)
+    other_charges = Column(Numeric(15, 2), nullable=False, default=0)
     account_id = Column(Integer, ForeignKey("accounts.account_id"), nullable=True)
     target_fund_id = Column(Integer, ForeignKey("mutual_funds.mutual_fund_id"), nullable=True)
     financial_transaction_id = Column(
         Integer, ForeignKey("transactions.transaction_id"), nullable=True
     )
+    linked_charge_transaction_id = Column(Integer, ForeignKey("transactions.transaction_id"), nullable=True)
     transaction_date = Column(DateTime, nullable=False)
     notes = Column(String(500), nullable=True)
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
@@ -391,7 +394,8 @@ class MfTransaction(Base):
     mutual_fund = relationship("MutualFund", foreign_keys=[mutual_fund_id], back_populates="mf_transactions")
     account = relationship("Account", back_populates="mf_transactions")
     target_fund = relationship("MutualFund", foreign_keys=[target_fund_id], back_populates="target_fund_transactions")
-    financial_transaction = relationship("Transaction")
+    financial_transaction = relationship("Transaction", foreign_keys=[financial_transaction_id])
+    linked_charge_transaction = relationship("Transaction", foreign_keys=[linked_charge_transaction_id])
 
     __table_args__ = (
         Index("idx_mf_transactions_ledger_id", "ledger_id"),
@@ -399,4 +403,6 @@ class MfTransaction(Base):
         Index("idx_mf_transactions_account_id", "account_id"),
         Index("idx_mf_transactions_target_fund_id", "target_fund_id"),
         Index("idx_mf_transactions_date", "transaction_date"),
+        Index("idx_mf_transactions_financial_transaction_id", "financial_transaction_id"),
+        Index("idx_mf_transactions_linked_charge_transaction_id", "linked_charge_transaction_id"),
     )

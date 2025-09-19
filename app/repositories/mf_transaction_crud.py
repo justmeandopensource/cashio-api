@@ -4,7 +4,7 @@ from sqlalchemy import and_
 from uuid import UUID
 from fastapi import HTTPException, status
 
-from app.models.model import MfTransaction, Transaction, Account
+from app.models.model import MfTransaction, Transaction, Account, Category
 from app.repositories import transaction_crud, account_crud
 from app.schemas import mutual_funds_schema
 
@@ -25,6 +25,12 @@ def create_mf_transaction(
 
     total_amount = Decimal("0")
     financial_transaction_id = None
+    nav_per_unit = None
+    amount_excluding_charges = None
+    other_charges = None
+    linked_charge_transaction_id = None
+    realized_gain = None
+    cost_basis_of_units_sold = None
 
     if transaction_data.transaction_type in ["buy", "sell", "switch_out", "switch_in"]:
         if transaction_data.transaction_type in ["buy", "sell"]:
@@ -43,27 +49,47 @@ def create_mf_transaction(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Cannot use group accounts for transactions. Please select a leaf account.",
                 )
-            if transaction_data.nav_per_unit <= 0:
+            if transaction_data.amount_excluding_charges <= 0:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="NAV per unit must be greater than 0 for buy/sell transactions",
+                    detail="Amount excluding charges must be greater than 0 for buy/sell transactions",
+                )
+            if transaction_data.other_charges < 0:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Other charges cannot be negative",
                 )
 
-            total_amount = Decimal(str(transaction_data.units)) * Decimal(str(transaction_data.nav_per_unit))
+            # Validate expense category if charges are present
+            if transaction_data.other_charges > 0 and not transaction_data.expense_category_id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Expense category is required when other charges are present",
+                )
 
-            # Create financial transaction
+            # Calculate NAV and total amount
+            amount_excluding_charges = Decimal(str(transaction_data.amount_excluding_charges))
+            other_charges = Decimal(str(transaction_data.other_charges))
+            units = Decimal(str(transaction_data.units))
+            nav_per_unit = amount_excluding_charges / units
+
+            if transaction_data.transaction_type == "buy":
+                total_amount = amount_excluding_charges + other_charges
+            else:  # sell
+                total_amount = amount_excluding_charges - other_charges
+
+            # Create main financial transaction for amount_excluding_charges
             transaction_type_financial = "debit" if transaction_data.transaction_type == "buy" else "credit"
-            # Generate notes for the financial transaction
             financial_transaction_notes = ""
             if transaction_data.transaction_type == "buy":
-                financial_transaction_notes = f"MF Buy: {fund.name} {transaction_data.units:.3f} units at NAV {transaction_data.nav_per_unit:.2f}"
+                financial_transaction_notes = f"MF Buy: {fund.name} {transaction_data.units:.3f} units at NAV {nav_per_unit:.2f}"
             elif transaction_data.transaction_type == "sell":
-                financial_transaction_notes = f"MF Sell: {fund.name} {transaction_data.units:.3f} units at NAV {transaction_data.nav_per_unit:.2f}"
+                financial_transaction_notes = f"MF Sell: {fund.name} {transaction_data.units:.3f} units at NAV {nav_per_unit:.2f}"
 
             financial_transaction = Transaction(
                 account_id=transaction_data.account_id,
-                credit=total_amount if transaction_type_financial == "credit" else 0,
-                debit=total_amount if transaction_type_financial == "debit" else 0,
+                credit=amount_excluding_charges if transaction_type_financial == "credit" else 0,
+                debit=amount_excluding_charges if transaction_type_financial == "debit" else 0,
                 date=transaction_data.transaction_date,
                 notes=financial_transaction_notes,
                 is_mf_transaction=True,
@@ -73,10 +99,47 @@ def create_mf_transaction(
             db.refresh(financial_transaction)
             financial_transaction_id = financial_transaction.transaction_id
 
-            # Update account balance
-            account_amount_change = total_amount if transaction_type_financial == "credit" else -total_amount
+            # Update account balance for main transaction
+            account_amount_change = amount_excluding_charges if transaction_type_financial == "credit" else -amount_excluding_charges
             account.balance = account.balance + account_amount_change
             account.net_balance = account.net_balance + account_amount_change
+
+            # Create charges transaction if other_charges > 0
+            linked_charge_transaction_id = None
+            if other_charges > 0:
+                # Validate category exists and is expense type
+                category = db.query(Category).filter(
+                    Category.category_id == transaction_data.expense_category_id,
+                    Category.user_id == fund.ledger.user_id,
+                    Category.type == "expense"
+                ).first()
+                if not category:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Invalid expense category for charges",
+                    )
+
+                charge_transaction_type = "debit"  # Charges are always debited (expenses)
+                charge_notes = f"MF {transaction_data.transaction_type.title()} Charges"
+
+                charge_transaction = Transaction(
+                    account_id=transaction_data.account_id,
+                    credit=0,
+                    debit=other_charges,
+                    category_id=transaction_data.expense_category_id,
+                    date=transaction_data.transaction_date,
+                    notes=charge_notes,
+                    is_mf_transaction=True,
+                )
+                db.add(charge_transaction)
+                db.commit()
+                db.refresh(charge_transaction)
+                linked_charge_transaction_id = charge_transaction.transaction_id
+
+                # Update account balance for charges
+                account.balance = account.balance - other_charges
+                account.net_balance = account.net_balance - other_charges
+
             db.commit()
 
             # Calculate realized gain and cost basis for sell transactions
@@ -96,15 +159,15 @@ def create_mf_transaction(
 
             # Update fund balances
             units_change = Decimal(str(transaction_data.units)) if transaction_data.transaction_type == "buy" else -Decimal(str(transaction_data.units))
-            fund_amount_change = total_amount if transaction_data.transaction_type == "buy" else -cost_basis_of_units_sold
+            fund_amount_change = amount_excluding_charges if transaction_data.transaction_type == "buy" else -cost_basis_of_units_sold
             update_mutual_fund_balances(db, fund.mutual_fund_id, units_change, float(fund_amount_change))
 
             if transaction_data.transaction_type == "buy":
-                fund.total_invested_cash += total_amount
-                fund.external_cash_invested += total_amount
+                fund.total_invested_cash += amount_excluding_charges
+                fund.external_cash_invested += amount_excluding_charges
 
             if transaction_data.transaction_type in ["buy", "sell"]:
-                fund.latest_nav = Decimal(str(transaction_data.nav_per_unit))
+                fund.latest_nav = nav_per_unit
                 fund.last_nav_update = transaction_data.transaction_date
                 fund.current_value = fund.total_units * fund.latest_nav
                 fund.updated_at = datetime.now(timezone.utc)
@@ -209,11 +272,14 @@ def create_mf_transaction(
         mutual_fund_id=transaction_data.mutual_fund_id,
         transaction_type=transaction_data.transaction_type,
         units=transaction_data.units,
-        nav_per_unit=transaction_data.nav_per_unit,
+        nav_per_unit=nav_per_unit or transaction_data.nav_per_unit,
         total_amount=total_amount,
+        amount_excluding_charges=amount_excluding_charges if 'amount_excluding_charges' in locals() else transaction_data.amount_excluding_charges,
+        other_charges=other_charges if 'other_charges' in locals() else transaction_data.other_charges,
         account_id=transaction_data.account_id,
         target_fund_id=transaction_data.target_fund_id,
         financial_transaction_id=financial_transaction_id,
+        linked_charge_transaction_id=linked_charge_transaction_id,
         transaction_date=transaction_data.transaction_date,
         notes=transaction_data.notes,
         linked_transaction_id=transaction_data.linked_transaction_id,
@@ -304,10 +370,10 @@ def delete_mf_transaction(db: Session, mf_transaction_id: int) -> None:
     # Reverse the fund balance changes based on transaction type
     if db_transaction.transaction_type == "buy":
         units_change = -db_transaction.units
-        amount_change = -db_transaction.total_amount
+        amount_change = -db_transaction.amount_excluding_charges
         update_mutual_fund_balances(db, fund.mutual_fund_id, units_change, float(amount_change))
-        fund.total_invested_cash -= db_transaction.total_amount
-        fund.external_cash_invested -= db_transaction.total_amount
+        fund.total_invested_cash -= db_transaction.amount_excluding_charges
+        fund.external_cash_invested -= db_transaction.amount_excluding_charges
     elif db_transaction.transaction_type == "sell":
         units_change = db_transaction.units
         amount_change = db_transaction.cost_basis_of_units_sold
@@ -345,6 +411,18 @@ def delete_mf_transaction(db: Session, mf_transaction_id: int) -> None:
                     account.balance -= amount
                     account.net_balance -= amount
             db.delete(financial_transaction)
+
+    # Delete linked charge transaction if it exists
+    if db_transaction.linked_charge_transaction_id:
+        charge_transaction = db.query(Transaction).filter(Transaction.transaction_id == db_transaction.linked_charge_transaction_id).first()
+        if charge_transaction:
+            account = charge_transaction.account
+            if account:
+                # Charge transactions are always debits (expenses), so when deleting we credit back
+                amount = charge_transaction.debit
+                account.balance += amount
+                account.net_balance += amount
+            db.delete(charge_transaction)
 
     # If it's a switch transaction, delete the linked transaction as well
     if db_transaction.linked_transaction_id:
