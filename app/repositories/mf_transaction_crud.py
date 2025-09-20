@@ -221,6 +221,7 @@ def create_mf_transaction(
             db.commit()
 
             total_amount = total_value_switched_out
+            amount_excluding_charges = total_value_switched_out
 
         elif transaction_data.transaction_type == "switch_in":
             if not transaction_data.target_fund_id:
@@ -265,6 +266,7 @@ def create_mf_transaction(
             db.commit()
 
             total_amount = to_units * to_nav # This is the market value of units received
+            amount_excluding_charges = total_amount
 
     # Create MF transaction record
     db_transaction = MfTransaction(
@@ -394,6 +396,30 @@ def delete_mf_transaction(db: Session, mf_transaction_id: int) -> None:
         amount_change = -db_transaction.cost_basis_of_units_sold
         update_mutual_fund_balances(db, fund.mutual_fund_id, units_change, float(amount_change))
         fund.total_invested_cash -= db_transaction.cost_basis_of_units_sold
+
+    # For switch transactions, revert NAV to the most recent remaining transaction
+    if db_transaction.transaction_type in ["switch_out", "switch_in"]:
+        # Find the most recent transaction for this fund (excluding the one being deleted)
+        latest_transaction = (
+            db.query(MfTransaction)
+            .filter(
+                MfTransaction.mutual_fund_id == fund.mutual_fund_id,
+                MfTransaction.mf_transaction_id != db_transaction.mf_transaction_id
+            )
+            .order_by(MfTransaction.transaction_date.desc())
+            .first()
+        )
+
+        if latest_transaction:
+            fund.latest_nav = latest_transaction.nav_per_unit
+            fund.last_nav_update = latest_transaction.transaction_date
+        else:
+            # If no transactions remain, reset NAV to 0 or keep current value
+            fund.latest_nav = fund.average_cost_per_unit if fund.total_units > 0 else 0
+            fund.last_nav_update = None
+
+        fund.current_value = fund.total_units * fund.latest_nav
+        fund.updated_at = datetime.now(timezone.utc)
 
     # Delete financial transaction and update account balance
     if db_transaction.financial_transaction_id:

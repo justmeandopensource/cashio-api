@@ -12,7 +12,7 @@ def create_amc(db: Session, ledger_id: int, amc: mutual_funds_schema.AmcCreate) 
         db_amc = Amc(
             ledger_id=ledger_id,
             name=amc.name,
-            description=amc.description,
+            notes=amc.notes,
         )
         db.add(db_amc)
         db.commit()

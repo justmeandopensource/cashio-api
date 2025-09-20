@@ -8,17 +8,17 @@ from pydantic import BaseModel, Field
 class AmcBase(BaseModel, str_strip_whitespace=True):
     amc_id: int
     name: str
-    description: Optional[str] = None
+    notes: Optional[str] = None
 
 
 class AmcCreate(BaseModel, str_strip_whitespace=True):
     name: str = Field(..., min_length=1, max_length=100)
-    description: Optional[str] = Field(None, max_length=500)
+    notes: Optional[str] = Field(None, max_length=500)
 
 
 class AmcUpdate(BaseModel, str_strip_whitespace=True):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
-    description: Optional[str] = Field(None, max_length=500)
+    notes: Optional[str] = Field(None, max_length=500)
 
 
 class Amc(AmcCreate, str_strip_whitespace=True):
@@ -43,12 +43,16 @@ class MutualFundBase(BaseModel, str_strip_whitespace=True):
 
 class MutualFundCreate(BaseModel, str_strip_whitespace=True):
     name: str = Field(..., min_length=1, max_length=100)
+    plan: Optional[str] = Field(None, max_length=50)
+    code: Optional[str] = Field(None, max_length=50)
     amc_id: int = Field(..., gt=0)
     notes: Optional[str] = Field(None, max_length=500)
 
 
 class MutualFundUpdate(BaseModel, str_strip_whitespace=True):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
+    plan: Optional[str] = Field(None, max_length=50)
+    code: Optional[str] = Field(None, max_length=50)
     amc_id: Optional[int] = Field(None, gt=0)
     notes: Optional[str] = Field(None, max_length=500)
 
@@ -140,9 +144,10 @@ class MfTransaction(MfTransactionCreate, str_strip_whitespace=True):
 class MfSwitchCreate(BaseModel, str_strip_whitespace=True):
     source_mutual_fund_id: int = Field(..., gt=0)
     target_mutual_fund_id: int = Field(..., gt=0)
-    units_to_switch: float = Field(..., gt=0)
-    source_nav_at_switch: float = Field(..., gt=0)
-    target_nav_at_switch: float = Field(..., gt=0)
+    source_units: float = Field(..., gt=0)
+    source_amount: float = Field(..., gt=0)
+    target_units: float = Field(..., gt=0)
+    target_amount: float = Field(..., gt=0)
     transaction_date: datetime
     notes: Optional[str] = Field(None, max_length=500)
 
@@ -151,6 +156,8 @@ class MfSwitchCreate(BaseModel, str_strip_whitespace=True):
 class MutualFundSummary(BaseModel, str_strip_whitespace=True):
     mutual_fund_id: int
     name: str
+    plan: Optional[str] = None
+    code: Optional[str] = None
     amc_name: str
     total_units: float
     average_cost_per_unit: float

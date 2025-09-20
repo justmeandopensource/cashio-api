@@ -397,17 +397,24 @@ def switch_mutual_fund_units(
             detail="Cannot switch to the same fund",
         )
 
+    # Calculate NAVs from amounts and units
+    source_nav = switch_data.source_amount / switch_data.source_units
+    target_nav = switch_data.target_amount / switch_data.target_units
+
     # Create switch_out transaction (selling from source fund)
     switch_out_transaction_data = mutual_funds_schema.MfTransactionCreate(
         mutual_fund_id=switch_data.source_mutual_fund_id,
         transaction_type="switch_out",
-        units=switch_data.units_to_switch,
-        nav_per_unit=switch_data.source_nav_at_switch,
+        units=switch_data.source_units,
+        nav_per_unit=source_nav,
+        amount_excluding_charges=switch_data.source_amount,
+        other_charges=0,
+        expense_category_id=None,
         account_id=None,  # No direct account involvement for switch
         target_fund_id=switch_data.target_mutual_fund_id,
         transaction_date=switch_data.transaction_date,
         notes=switch_data.notes,
-        to_nav=switch_data.target_nav_at_switch, # This is not used in switch_out logic, but kept for schema consistency
+        to_nav=target_nav, # This is not used in switch_out logic, but kept for schema consistency
         # linked_transaction_id will be set after both transactions are created
     )
     switch_out_transaction = create_mf_transaction(
@@ -415,21 +422,23 @@ def switch_mutual_fund_units(
     )
 
     # Create switch_in transaction (buying into target fund)
-    value_switched_out = Decimal(str(switch_data.units_to_switch)) * Decimal(str(switch_data.source_nav_at_switch))
-    units_switched_in = value_switched_out / Decimal(str(switch_data.target_nav_at_switch))
+    value_switched_out = Decimal(str(switch_data.source_amount))
 
     switch_in_transaction_data = mutual_funds_schema.MfTransactionCreate(
         mutual_fund_id=switch_data.target_mutual_fund_id,
         transaction_type="switch_in",
-        units=float(units_switched_in),
-        nav_per_unit=switch_data.target_nav_at_switch,
+        units=switch_data.target_units,
+        nav_per_unit=target_nav,
+        amount_excluding_charges=switch_data.target_amount,
+        other_charges=0,
+        expense_category_id=None,
         account_id=None,  # No direct account involvement for switch
         target_fund_id=switch_data.source_mutual_fund_id,
         transaction_date=switch_data.transaction_date,
         notes=switch_data.notes,
-        to_nav=switch_data.source_nav_at_switch, # This is not used in switch_in logic, but kept for schema consistency
+        to_nav=source_nav, # This is not used in switch_in logic, but kept for schema consistency
         # linked_transaction_id will be set after both transactions are created
-        cost_basis_of_units_sold=float(value_switched_out) # Pass the market value of units switched out as cost basis for switch_in
+        cost_basis_of_units_sold=float(switch_data.target_amount) # Use target amount as cost basis for target fund
     )
     switch_in_transaction = create_mf_transaction(
         db=db, ledger_id=ledger_id, transaction_data=switch_in_transaction_data

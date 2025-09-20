@@ -18,6 +18,8 @@ def create_mutual_fund(
             ledger_id=ledger_id,
             amc_id=fund.amc_id,
             name=fund.name,
+            plan=fund.plan,
+            code=fund.code,
             notes=fund.notes,
         )
 

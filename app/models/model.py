@@ -297,7 +297,7 @@ class Amc(Base):
     amc_id = Column(Integer, primary_key=True)
     ledger_id = Column(Integer, ForeignKey("ledgers.ledger_id"), nullable=False)
     name = Column(String(100), nullable=False)  # "HDFC", "ICICI", "SBI"
-    description = Column(String(500), nullable=True)
+    notes = Column(String(500), nullable=True)
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
 
     ledger = relationship("Ledger", back_populates="amcs")
@@ -318,6 +318,8 @@ class MutualFund(Base):
         Integer, ForeignKey("amcs.amc_id"), nullable=False
     )
     name = Column(String(100), nullable=False)  # "HDFC Mid Cap Fund"
+    plan = Column(String(50), nullable=True)  # "Direct Growth", "Regular Reinvestment"
+    code = Column(String(50), nullable=True)  # Unique code for the fund
     total_units = Column(
         Numeric(15, 3), default=0, nullable=False
     )  # Balance units held (3 decimal places)
