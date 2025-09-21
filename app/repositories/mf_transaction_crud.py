@@ -212,7 +212,11 @@ def create_mf_transaction(
             from_nav = Decimal(str(transaction_data.nav_per_unit))
 
             total_value_switched_out = from_units * from_nav
-            cost_basis_of_units_sold = from_units * fund.average_cost_per_unit
+            # For switching all units, use exact total invested to avoid rounding errors
+            if from_units == Decimal(str(fund.total_units)):
+                cost_basis_of_units_sold = fund.total_invested_cash
+            else:
+                cost_basis_of_units_sold = from_units * fund.average_cost_per_unit
             realized_gain = total_value_switched_out - cost_basis_of_units_sold
 
             fund.total_realized_gain += realized_gain
