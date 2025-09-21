@@ -78,6 +78,14 @@ def create_mf_transaction(
             else:  # sell
                 total_amount = amount_excluding_charges - other_charges
 
+            # Validate sufficient units for sell transactions BEFORE creating financial transactions
+            if transaction_data.transaction_type == "sell":
+                if fund.total_units < transaction_data.units:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Insufficient units in fund. Available: {fund.total_units}, Requested: {transaction_data.units}",
+                    )
+
             # Create main financial transaction for amount_excluding_charges
             transaction_type_financial = "debit" if transaction_data.transaction_type == "buy" else "credit"
             financial_transaction_notes = ""
@@ -146,12 +154,11 @@ def create_mf_transaction(
             realized_gain = Decimal("0")
             cost_basis_of_units_sold = Decimal("0")
             if transaction_data.transaction_type == "sell":
-                if fund.total_units < transaction_data.units:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"Insufficient units in fund. Available: {fund.total_units}, Requested: {transaction_data.units}",
-                    )
-                cost_basis_of_units_sold = Decimal(str(transaction_data.units)) * fund.average_cost_per_unit
+                # For selling all units, use exact total invested to avoid rounding errors
+                if transaction_data.units == fund.total_units:
+                    cost_basis_of_units_sold = fund.total_invested_cash
+                else:
+                    cost_basis_of_units_sold = Decimal(str(transaction_data.units)) * fund.average_cost_per_unit
                 realized_gain = total_amount - cost_basis_of_units_sold
                 fund.total_realized_gain += realized_gain
                 fund.total_invested_cash -= cost_basis_of_units_sold
@@ -189,6 +196,7 @@ def create_mf_transaction(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Cannot switch to the same fund",
                 )
+            # Use exact comparison since we now use Decimal arithmetic
             if fund.total_units < transaction_data.units:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,

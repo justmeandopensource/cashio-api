@@ -324,7 +324,7 @@ class MutualFund(Base):
         Numeric(15, 3), default=0, nullable=False
     )  # Balance units held (3 decimal places)
     average_cost_per_unit = Column(
-        Numeric(15, 2), default=0, nullable=False
+        Numeric(15, 4), default=0, nullable=False
     )  # Average cost per unit
     latest_nav = Column(
         Numeric(15, 2), default=0, nullable=False
@@ -334,13 +334,13 @@ class MutualFund(Base):
         Numeric(15, 2), default=0, nullable=False
     )  # Auto-calculated: total_units * latest_nav
     total_realized_gain = Column(
-        Numeric(15, 2), default=0, nullable=False
+        Numeric(15, 4), default=0, nullable=False
     )  # Cumulative realized gains from sales/switches
     total_invested_cash = Column(
-        Numeric(15, 2), default=0, nullable=False
+        Numeric(15, 4), default=0, nullable=False
     )  # Total cost basis of units currently held in this fund (including switches)
     external_cash_invested = Column(
-        Numeric(15, 2), default=0, nullable=False
+        Numeric(15, 4), default=0, nullable=False
     )  # Total cash invested from external sources (excluding switches)
     notes = Column(String(500), nullable=True)
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
