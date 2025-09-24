@@ -320,6 +320,7 @@ class MutualFund(Base):
     name = Column(String(100), nullable=False)  # "HDFC Mid Cap Fund"
     plan = Column(String(50), nullable=True)  # "Direct Growth", "Regular Reinvestment"
     code = Column(String(50), nullable=True)  # Unique code for the fund
+    owner = Column(String(100), nullable=True)  # Owner name (optional)
     total_units = Column(
         Numeric(15, 3), default=0, nullable=False
     )  # Balance units held (3 decimal places)
@@ -356,7 +357,6 @@ class MutualFund(Base):
     )
 
     __table_args__ = (
-        UniqueConstraint("ledger_id", "name", name="uq_ledger_mutual_fund_name"),
         Index("idx_mutual_funds_ledger_id", "ledger_id"),
         Index("idx_mutual_funds_amc_id", "amc_id"),
     )

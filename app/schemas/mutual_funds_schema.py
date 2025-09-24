@@ -46,6 +46,7 @@ class MutualFundCreate(BaseModel, str_strip_whitespace=True):
     name: str = Field(..., min_length=1, max_length=100)
     plan: Optional[str] = Field(None, max_length=50)
     code: Optional[str] = Field(None, max_length=50)
+    owner: Optional[str] = Field(None, max_length=100)
     amc_id: int = Field(..., gt=0)
     notes: Optional[str] = Field(None, max_length=500)
 
@@ -54,6 +55,7 @@ class MutualFundUpdate(BaseModel, str_strip_whitespace=True):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     plan: Optional[str] = Field(None, max_length=50)
     code: Optional[str] = Field(None, max_length=50)
+    owner: Optional[str] = Field(None, max_length=100)
     amc_id: Optional[int] = Field(None, gt=0)
     notes: Optional[str] = Field(None, max_length=500)
 
@@ -159,6 +161,7 @@ class MutualFundSummary(BaseModel, str_strip_whitespace=True):
     name: str
     plan: Optional[str] = None
     code: Optional[str] = None
+    owner: Optional[str] = None
     amc_name: str
     total_units: Decimal
     average_cost_per_unit: Decimal

@@ -20,6 +20,7 @@ def create_mutual_fund(
             name=fund.name,
             plan=fund.plan,
             code=fund.code,
+            owner=fund.owner,
             notes=fund.notes,
         )
 
