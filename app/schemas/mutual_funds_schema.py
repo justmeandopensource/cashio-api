@@ -183,3 +183,33 @@ class AmcSummary(BaseModel, str_strip_whitespace=True):
     total_invested: Decimal
     unrealized_pnl: Decimal
     unrealized_pnl_percentage: Decimal
+
+
+# Bulk NAV Fetch Schemas
+class NavFetchResult(BaseModel, str_strip_whitespace=True):
+    scheme_code: str
+    fund_name: Optional[str] = None
+    nav_value: Optional[float] = None
+    nav_date: Optional[str] = None
+    success: bool
+    error_message: Optional[str] = None
+
+
+class BulkNavFetchRequest(BaseModel, str_strip_whitespace=True):
+    scheme_codes: list[str] = Field(..., min_length=1)
+
+
+class BulkNavFetchResponse(BaseModel, str_strip_whitespace=True):
+    results: list[NavFetchResult]
+    total_requested: int
+    total_successful: int
+    total_failed: int
+
+
+class BulkNavUpdateRequest(BaseModel, str_strip_whitespace=True):
+    updates: list[dict] = Field(..., description="List of {mutual_fund_id: int, latest_nav: Decimal}")
+
+
+class BulkNavUpdateResponse(BaseModel, str_strip_whitespace=True):
+    updated_funds: list[int]  # List of mutual_fund_ids that were updated
+    total_updated: int

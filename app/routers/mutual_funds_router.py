@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database.connection import get_db
+from app.models.model import MutualFund
 from app.repositories import ledger_crud
 from app.repositories.amc_crud import (
     create_amc as create_amc_repo,
@@ -20,6 +21,7 @@ from app.repositories.mutual_fund_crud import (
     get_mutual_fund_by_id,
     update_mutual_fund as update_mutual_fund_repo,
     update_mutual_fund_nav,
+    bulk_update_mutual_fund_navs,
     delete_mutual_fund as delete_mutual_fund_repo,
 )
 from app.repositories.mf_transaction_crud import (
@@ -31,6 +33,7 @@ from app.repositories.mf_transaction_crud import (
 )
 from app.schemas import mutual_funds_schema, user_schema
 from app.security.user_security import get_current_user
+from app.services.nav_service import NavService
 
 mutual_funds_router = APIRouter(prefix="/ledger")
 
@@ -577,4 +580,91 @@ def update_mf_transaction_endpoint(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error updating MF transaction: {str(e)}",
+        )
+
+
+# Bulk NAV Operations Endpoints
+@mutual_funds_router.post(
+    "/{ledger_id}/mutual-funds/bulk-fetch-nav",
+    response_model=mutual_funds_schema.BulkNavFetchResponse,
+    tags=["mutual-funds"],
+)
+def bulk_fetch_nav(
+    ledger_id: int,
+    request: mutual_funds_schema.BulkNavFetchRequest,
+    user: user_schema.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Fetch latest NAV for multiple mutual funds by scheme codes."""
+    ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
+    if not ledger or ledger.user_id != user.user_id:
+        raise HTTPException(status_code=404, detail="Ledger not found")
+
+    try:
+        # Fetch NAV data for all scheme codes
+        results = NavService.fetch_nav_bulk_sync(request.scheme_codes)
+
+        # Calculate summary stats
+        total_requested = len(request.scheme_codes)
+        total_successful = sum(1 for r in results if r.success)
+        total_failed = total_requested - total_successful
+
+        return mutual_funds_schema.BulkNavFetchResponse(
+            results=results,
+            total_requested=total_requested,
+            total_successful=total_successful,
+            total_failed=total_failed
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching NAV data: {str(e)}",
+        )
+
+
+@mutual_funds_router.put(
+    "/{ledger_id}/mutual-funds/bulk-update-nav",
+    response_model=mutual_funds_schema.BulkNavUpdateResponse,
+    tags=["mutual-funds"],
+)
+def bulk_update_nav(
+    ledger_id: int,
+    request: mutual_funds_schema.BulkNavUpdateRequest,
+    user: user_schema.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Bulk update NAV for multiple mutual funds."""
+    ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
+    if not ledger or ledger.user_id != user.user_id:
+        raise HTTPException(status_code=404, detail="Ledger not found")
+
+    try:
+        # Validate that all funds belong to this ledger
+        fund_ids = [update['mutual_fund_id'] for update in request.updates]
+        funds = db.query(MutualFund).filter(
+            MutualFund.mutual_fund_id.in_(fund_ids),
+            MutualFund.ledger_id == ledger_id
+        ).all()
+
+        if len(funds) != len(fund_ids):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Some mutual funds not found or don't belong to this ledger"
+            )
+
+        # Perform bulk update
+        updated_ids = bulk_update_mutual_fund_navs(db=db, nav_updates=request.updates)
+
+        return mutual_funds_schema.BulkNavUpdateResponse(
+            updated_funds=updated_ids,
+            total_updated=len(updated_ids)
+        )
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error updating NAV data: {str(e)}",
         )

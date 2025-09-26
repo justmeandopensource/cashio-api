@@ -145,6 +145,49 @@ def update_mutual_fund_balances(
 
 
 
+def bulk_update_mutual_fund_navs(
+    db: Session, nav_updates: list[dict]
+) -> list[int]:
+    """Bulk update NAV for multiple mutual funds.
+
+    Args:
+        nav_updates: List of dicts with 'mutual_fund_id' and 'latest_nav' keys
+
+    Returns:
+        List of mutual_fund_ids that were successfully updated
+    """
+    updated_ids = []
+
+    for update_data in nav_updates:
+        try:
+            mutual_fund_id = update_data['mutual_fund_id']
+            latest_nav = Decimal(str(update_data['latest_nav']))
+
+            db_fund = db.query(MutualFund).filter(
+                MutualFund.mutual_fund_id == mutual_fund_id
+            ).first()
+
+            if not db_fund:
+                continue  # Skip if fund not found
+
+            # Update NAV and recalculate current value
+            db_fund.latest_nav = latest_nav
+            db_fund.last_nav_update = datetime.now(timezone.utc)
+            db_fund.current_value = db_fund.total_units * latest_nav
+            db_fund.updated_at = datetime.now(timezone.utc)
+
+            updated_ids.append(mutual_fund_id)
+
+        except (KeyError, ValueError, TypeError):
+            # Skip invalid update data
+            continue
+
+    if updated_ids:
+        db.commit()
+
+    return updated_ids
+
+
 def delete_mutual_fund(db: Session, mutual_fund_id: int) -> None:
     """Delete a mutual fund if it has zero units."""
     db_fund = db.query(MutualFund).filter(MutualFund.mutual_fund_id == mutual_fund_id).first()
@@ -160,7 +203,7 @@ def delete_mutual_fund(db: Session, mutual_fund_id: int) -> None:
             detail="Cannot delete mutual fund with remaining units. Redeem all units first.",
         )
 
-    
+
 
     db.delete(db_fund)
     db.commit()
