@@ -213,3 +213,8 @@ class BulkNavUpdateRequest(BaseModel, str_strip_whitespace=True):
 class BulkNavUpdateResponse(BaseModel, str_strip_whitespace=True):
     updated_funds: list[int]  # List of mutual_fund_ids that were updated
     total_updated: int
+
+
+class YearlyInvestment(BaseModel, str_strip_whitespace=True):
+    year: int
+    total_invested: Decimal

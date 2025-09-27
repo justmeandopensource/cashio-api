@@ -1,5 +1,6 @@
-from typing import List
+from typing import List, Optional
 from decimal import Decimal
+from datetime import datetime
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -32,6 +33,7 @@ from app.repositories.mf_transaction_crud import (
     delete_mf_transaction,
 )
 from app.schemas import mutual_funds_schema, user_schema
+from sqlalchemy import func, extract
 from app.security.user_security import get_current_user
 from app.services.nav_service import NavService
 
@@ -668,3 +670,75 @@ def bulk_update_nav(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error updating NAV data: {str(e)}",
         )
+
+
+@mutual_funds_router.get(
+    "/{ledger_id}/mutual-funds/yearly-investments",
+    response_model=List[mutual_funds_schema.YearlyInvestment],
+    tags=["mutual-funds"],
+)
+def get_yearly_investments(
+    ledger_id: int,
+    owner: Optional[str] = None,
+    user: user_schema.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get yearly investment summary for mutual funds."""
+    ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
+    if not ledger or ledger.user_id != user.user_id:
+        raise HTTPException(status_code=404, detail="Ledger not found")
+
+    from app.models.model import MfTransaction
+
+    # Build query for buy transactions
+    query = db.query(
+        extract('year', MfTransaction.transaction_date).label('year'),
+        func.sum(MfTransaction.amount_excluding_charges).label('total_invested')
+    ).filter(
+        MfTransaction.ledger_id == ledger_id,
+        MfTransaction.transaction_type == 'buy'
+    )
+
+    # Filter by owner if specified
+    if owner and owner != 'all':
+        from app.models.model import MutualFund
+        query = query.join(
+            MutualFund,
+            MfTransaction.mutual_fund_id == MutualFund.mutual_fund_id
+        ).filter(MutualFund.owner == owner)
+
+    # Group by year and order by year
+    query = query.group_by(extract('year', MfTransaction.transaction_date)).order_by(extract('year', MfTransaction.transaction_date))
+
+    results = query.all()
+
+    # Convert to response format
+    yearly_investments = []
+    for result in results:
+        yearly_investments.append(mutual_funds_schema.YearlyInvestment(
+            year=int(result.year),
+            total_invested=result.total_invested or Decimal('0')
+        ))
+
+    # Fill in missing years from earliest to current year
+    if yearly_investments:
+        current_year = datetime.now().year
+        min_year = min(inv.year for inv in yearly_investments)
+        max_year = max(inv.year for inv in yearly_investments)
+
+        # Create a complete list from min_year to current_year
+        complete_years = {}
+        for year in range(min_year, current_year + 1):
+            complete_years[year] = Decimal('0')
+
+        # Fill in actual values
+        for inv in yearly_investments:
+            complete_years[inv.year] = inv.total_invested
+
+        # Convert back to list
+        yearly_investments = [
+            mutual_funds_schema.YearlyInvestment(year=year, total_invested=amount)
+            for year, amount in sorted(complete_years.items())
+        ]
+
+    return yearly_investments
