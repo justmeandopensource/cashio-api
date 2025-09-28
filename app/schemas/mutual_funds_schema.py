@@ -217,4 +217,5 @@ class BulkNavUpdateResponse(BaseModel, str_strip_whitespace=True):
 
 class YearlyInvestment(BaseModel, str_strip_whitespace=True):
     year: int
+    month: Optional[int] = None
     total_invested: Decimal

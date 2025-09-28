@@ -742,3 +742,150 @@ def get_yearly_investments(
         ]
 
     return yearly_investments
+
+
+@mutual_funds_router.get(
+    "/{ledger_id}/mutual-funds/corpus-growth",
+    response_model=List[mutual_funds_schema.YearlyInvestment],
+    tags=["mutual-funds"],
+)
+def get_corpus_growth(
+    ledger_id: int,
+    owner: Optional[str] = None,
+    granularity: str = "monthly",
+    user: user_schema.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get cumulative corpus growth for mutual funds by month."""
+    ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
+    if not ledger or ledger.user_id != user.user_id:
+        raise HTTPException(status_code=404, detail="Ledger not found")
+
+    from app.models.model import MfTransaction
+
+    # Build query for buy transactions - group by year and optionally month
+    if granularity == "yearly":
+        query = db.query(
+            extract('year', MfTransaction.transaction_date).label('year'),
+            func.sum(MfTransaction.amount_excluding_charges).label('total_invested')
+        ).filter(
+            MfTransaction.ledger_id == ledger_id,
+            MfTransaction.transaction_type == 'buy'
+        )
+
+        # Filter by owner if specified
+        if owner and owner != 'all':
+            from app.models.model import MutualFund
+            query = query.join(
+                MutualFund,
+                MfTransaction.mutual_fund_id == MutualFund.mutual_fund_id
+            ).filter(MutualFund.owner == owner)
+
+        # Group by year, order by year
+        query = query.group_by(extract('year', MfTransaction.transaction_date)).order_by(extract('year', MfTransaction.transaction_date))
+    else:  # monthly
+        query = db.query(
+            extract('year', MfTransaction.transaction_date).label('year'),
+            extract('month', MfTransaction.transaction_date).label('month'),
+            func.sum(MfTransaction.amount_excluding_charges).label('total_invested')
+        ).filter(
+            MfTransaction.ledger_id == ledger_id,
+            MfTransaction.transaction_type == 'buy'
+        )
+
+        # Filter by owner if specified
+        if owner and owner != 'all':
+            from app.models.model import MutualFund
+            query = query.join(
+                MutualFund,
+                MfTransaction.mutual_fund_id == MutualFund.mutual_fund_id
+            ).filter(MutualFund.owner == owner)
+
+        # Group by year and month, order by year and month
+        query = query.group_by(
+            extract('year', MfTransaction.transaction_date),
+            extract('month', MfTransaction.transaction_date)
+        ).order_by(
+            extract('year', MfTransaction.transaction_date),
+            extract('month', MfTransaction.transaction_date)
+        )
+
+    results = query.all()
+
+    # Convert to response format
+    investments = []
+    for result in results:
+        if granularity == "yearly":
+            investments.append(mutual_funds_schema.YearlyInvestment(
+                year=int(result.year),
+                total_invested=result.total_invested or Decimal('0')
+            ))
+        else:  # monthly
+            investments.append(mutual_funds_schema.YearlyInvestment(
+                year=int(result.year),
+                month=int(result.month),
+                total_invested=result.total_invested or Decimal('0')
+            ))
+
+    # Fill in missing periods from earliest to current period
+    if investments:
+        current_year = datetime.now().year
+        min_year = min(inv.year for inv in investments)
+
+        if granularity == "yearly":
+            # Fill in missing years
+            complete_years = {}
+            for year in range(min_year, current_year + 1):
+                complete_years[year] = Decimal('0')
+
+            # Fill in actual values
+            for inv in investments:
+                complete_years[inv.year] = inv.total_invested
+
+            # Calculate cumulative corpus
+            cumulative_corpus = Decimal('0')
+            corpus_growth = []
+            for year, amount in sorted(complete_years.items()):
+                cumulative_corpus += amount
+                corpus_growth.append(mutual_funds_schema.YearlyInvestment(
+                    year=year,
+                    total_invested=cumulative_corpus
+                ))
+
+            return corpus_growth
+        else:  # monthly
+            current_month = datetime.now().month
+
+            # Get the minimum month for the minimum year, defaulting to 1 if no months found
+            min_month_investments = [inv.month for inv in investments if inv.year == min_year and inv.month is not None]
+            min_month = min(min_month_investments) if min_month_investments else 1
+
+            # Create a complete list from earliest month to current month
+            complete_months = {}
+            for year in range(min_year, current_year + 1):
+                start_month = min_month if year == min_year else 1
+                end_month = current_month if year == current_year else 12
+                for month in range(start_month, end_month + 1):
+                    complete_months[f"{year}-{month:02d}"] = Decimal('0')
+
+            # Fill in actual values
+            for inv in investments:
+                if inv.month is not None:
+                    key = f"{inv.year}-{inv.month:02d}"
+                    complete_months[key] = inv.total_invested
+
+            # Calculate cumulative corpus
+            cumulative_corpus = Decimal('0')
+            corpus_growth = []
+            for key, amount in sorted(complete_months.items()):
+                cumulative_corpus += amount
+                year, month = map(int, key.split('-'))
+                corpus_growth.append(mutual_funds_schema.YearlyInvestment(
+                    year=year,
+                    month=month,
+                    total_invested=cumulative_corpus
+                ))
+
+            return corpus_growth
+
+    return []
