@@ -61,7 +61,7 @@ def get_current_month_overview(db: Session, ledger_id: int):
             elif s.category and s.category.type == "expense":
                 expense += s.debit - s.credit
 
-        return float(income), float(expense)
+        return float(income), float(expense)  # type: ignore
 
     # Get category breakdown
     def get_category_breakdown(category_type: str) -> List[Dict]:
@@ -91,7 +91,7 @@ def get_current_month_overview(db: Session, ledger_id: int):
             children = []
 
             # Get direct transactions for this category
-            if category.is_group:
+            if category.is_group:  # type: ignore
                 # For group categories, sum up all child categories
                 child_categories = [c.category_id for c in category.child_categories]
 
@@ -131,9 +131,9 @@ def get_current_month_overview(db: Session, ledger_id: int):
                     total += s.debit - s.credit
 
             # Only include categories with actual transactions
-            if total > 0:
+            if total > 0:  # type: ignore
                 # Get children if this is a group category
-                if category.is_group and category.child_categories:
+                if category.is_group and category.child_categories:  # type: ignore
                     for child in category.child_categories:
                         child_total = Decimal(0)
 
@@ -161,18 +161,18 @@ def get_current_month_overview(db: Session, ledger_id: int):
                             else:
                                 child_total += s.debit - s.credit
 
-                        if child_total > 0:
+                        if child_total > 0:  # type: ignore
                             children.append(
                                 {
                                     "name": child.name,
-                                    "value": float(child_total),
+                                    "value": float(child_total),  # type: ignore
                                 }
                             )
 
                 breakdown.append(
                     {
                         "name": category.name,
-                        "value": float(total),
+                        "value": float(total),  # type: ignore
                         "children": children if children else None,
                     }
                 )

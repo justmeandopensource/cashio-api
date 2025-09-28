@@ -1,8 +1,9 @@
 from datetime import datetime, timedelta
+from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Literal
 
-from sqlalchemy import and_, func, union_all
+from sqlalchemy import and_, func, select, union_all
 from sqlalchemy.orm import Session
 
 from app.models.model import Account, Category, Transaction, TransactionSplit
@@ -27,17 +28,16 @@ def get_income_expense_trend(
         date_format = "year"
 
     # Query for regular transactions
-    regular_transactions_query = (
-        db.query(
-            func.date_trunc(date_format, Transaction.date).label("period"),
-            func.sum(Transaction.credit).label("income"),
-            (func.sum(Transaction.debit) - func.sum(Transaction.credit)).label(
-                "expense"
-            ),
-        )
-        .join(Account, Transaction.account_id == Account.account_id)
-        .join(Category, Transaction.category_id == Category.category_id)
-        .filter(
+    regular_transactions_query = select(
+        func.date_trunc(date_format, Transaction.date).label("period"),
+        func.sum(Transaction.credit).label("income"),
+        (func.sum(Transaction.debit) - func.sum(Transaction.credit)).label(
+            "expense"
+        ),
+    ).select_from(
+        Transaction.join(Account, Transaction.account_id == Account.account_id).join(Category, Transaction.category_id == Category.category_id)
+    ).where(
+        and_(
             Account.ledger_id == ledger_id,
             Transaction.is_split == False,
             Transaction.is_transfer == False,
@@ -45,20 +45,18 @@ def get_income_expense_trend(
     )
 
     # Query for split transactions
-    split_transactions_query = (
-        db.query(
-            func.date_trunc(date_format, Transaction.date).label("period"),
-            func.sum(TransactionSplit.credit).label("income"),
-            (
-                func.sum(TransactionSplit.debit) - func.sum(TransactionSplit.credit)
-            ).label("expense"),
-        )
-        .join(
+    split_transactions_query = select(
+        func.date_trunc(date_format, Transaction.date).label("period"),
+        func.sum(TransactionSplit.credit).label("income"),
+        (
+            func.sum(TransactionSplit.debit) - func.sum(TransactionSplit.credit)
+        ).label("expense"),
+    ).select_from(
+        TransactionSplit.join(
             Transaction, TransactionSplit.transaction_id == Transaction.transaction_id
-        )
-        .join(Account, Transaction.account_id == Account.account_id)
-        .join(Category, TransactionSplit.category_id == Category.category_id)
-        .filter(
+        ).join(Account, Transaction.account_id == Account.account_id).join(Category, TransactionSplit.category_id == Category.category_id)
+    ).where(
+        and_(
             Account.ledger_id == ledger_id,
             Transaction.is_split == True,
             Transaction.is_transfer == False,
@@ -66,19 +64,19 @@ def get_income_expense_trend(
     )
 
     if start_date:
-        regular_transactions_query = regular_transactions_query.filter(
+        regular_transactions_query = regular_transactions_query.where(
             Transaction.date >= start_date
         )
-        split_transactions_query = split_transactions_query.filter(
+        split_transactions_query = split_transactions_query.where(
             Transaction.date >= start_date
         )
 
     # Separate queries for income and expense
-    income_regular = regular_transactions_query.filter(Category.type == "income").group_by("period")
-    expense_regular = regular_transactions_query.filter(Category.type == "expense").group_by("period")
+    income_regular = regular_transactions_query.where(Category.type == "income").group_by(func.date_trunc(date_format, Transaction.date))
+    expense_regular = regular_transactions_query.where(Category.type == "expense").group_by(func.date_trunc(date_format, Transaction.date))
 
-    income_split = split_transactions_query.filter(Category.type == "income").group_by("period")
-    expense_split = split_transactions_query.filter(Category.type == "expense").group_by("period")
+    income_split = split_transactions_query.where(Category.type == "income").group_by(func.date_trunc(date_format, Transaction.date))
+    expense_split = split_transactions_query.where(Category.type == "expense").group_by(func.date_trunc(date_format, Transaction.date))
 
     # Union all the queries
     all_income = union_all(income_regular, income_split).alias("all_income")

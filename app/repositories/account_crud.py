@@ -116,25 +116,25 @@ def update_account(db: Session, account_id: int, account_update: AccountUpdate):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Parent account not found",
             )
-        if not parent_account.is_group:
+        if not parent_account.is_group:  # type: ignore
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Parent account must be a group account",
             )
 
     if account_update.name is not None:
-        db_account.name = account_update.name
+        db_account.name = account_update.name  # type: ignore[reportAttributeAccessIssue]
     if account_update.opening_balance is not None:
-        db_account.opening_balance = Decimal(str(account_update.opening_balance))
-        db_account.net_balance = db_account.opening_balance + db_account.balance
+        db_account.opening_balance = Decimal(str(account_update.opening_balance))  # type: ignore
+        db_account.net_balance = db_account.opening_balance + db_account.balance  # type: ignore[reportAttributeAccessIssue]
     if account_update.parent_account_id is not None:
-        db_account.parent_account_id = account_update.parent_account_id
+        db_account.parent_account_id = account_update.parent_account_id  # type: ignore
     if account_update.description is not None:
-        db_account.description = account_update.description
+        db_account.description = account_update.description  # type: ignore
     if account_update.notes is not None:
-        db_account.notes = account_update.notes
+        db_account.notes = account_update.notes  # type: ignore
 
-    db_account.updated_at = datetime.now()
+    db_account.updated_at = datetime.now()  # type: ignore
 
     db.commit()
     db.refresh(db_account)

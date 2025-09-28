@@ -47,7 +47,7 @@ def create_asset_type(
 ):
     """Create a new asset type for a ledger."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     try:
@@ -76,7 +76,7 @@ def get_asset_types(
 ):
     """Get all asset types for a ledger."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     asset_types = get_asset_types_by_ledger_id(db=db, ledger_id=ledger_id)
@@ -97,12 +97,12 @@ def update_asset_type(
 ):
     """Update an asset type."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     # Verify the asset type belongs to this ledger
     asset_type = get_asset_type_by_id(db=db, asset_type_id=type_id)
-    if not asset_type or asset_type.ledger_id != ledger_id:
+    if asset_type is None or asset_type.ledger_id != ledger_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Asset type not found")
 
     updated_asset_type = update_asset_type_repo(
@@ -123,12 +123,12 @@ def delete_asset_type(
 ):
     """Delete an asset type."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     # Verify the asset type belongs to this ledger
     asset_type = get_asset_type_by_id(db=db, asset_type_id=type_id)
-    if not asset_type or asset_type.ledger_id != ledger_id:
+    if asset_type is None or asset_type.ledger_id != ledger_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Asset type not found")
 
     delete_asset_type_repo(db=db, asset_type_id=type_id)
@@ -149,7 +149,7 @@ def create_physical_asset(
 ):
     """Create a new physical asset for a ledger."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     try:
@@ -178,7 +178,7 @@ def get_physical_assets(
 ):
     """Get all physical assets for a ledger."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     assets = get_physical_assets_by_ledger_id(db=db, ledger_id=ledger_id)
@@ -198,11 +198,11 @@ def get_physical_asset(
 ):
     """Get a specific physical asset."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     asset = get_physical_asset_by_id(db=db, physical_asset_id=asset_id)
-    if not asset or asset.ledger_id != ledger_id:
+    if asset is None or asset.ledger_id != ledger_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Physical asset not found")
 
     return asset
@@ -222,12 +222,12 @@ def update_physical_asset(
 ):
     """Update a physical asset."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     # Verify the asset belongs to this ledger
     asset = get_physical_asset_by_id(db=db, physical_asset_id=asset_id)
-    if not asset or asset.ledger_id != ledger_id:
+    if asset is None or asset.ledger_id != ledger_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Physical asset not found")
 
     updated_asset = update_physical_asset_repo(
@@ -250,12 +250,12 @@ def update_asset_price(
 ):
     """Update the latest price for a physical asset."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     # Verify the asset belongs to this ledger
     asset = get_physical_asset_by_id(db=db, physical_asset_id=asset_id)
-    if not asset or asset.ledger_id != ledger_id:
+    if asset is None or asset.ledger_id != ledger_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Physical asset not found")
 
     updated_asset = update_physical_asset_price(
@@ -276,12 +276,12 @@ def delete_physical_asset(
 ):
     """Delete a physical asset."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     # Verify the asset belongs to this ledger
     asset = get_physical_asset_by_id(db=db, physical_asset_id=asset_id)
-    if not asset or asset.ledger_id != ledger_id:
+    if asset is None or asset.ledger_id != ledger_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Physical asset not found")
 
     delete_physical_asset_repo(db=db, physical_asset_id=asset_id)
@@ -302,7 +302,7 @@ def buy_asset(
 ):
     """Buy physical assets."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     # Ensure this is a buy transaction
@@ -339,7 +339,7 @@ def sell_asset(
 ):
     """Sell physical assets."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     # Ensure this is a sell transaction
@@ -376,12 +376,12 @@ def get_asset_transactions(
 ):
     """Get transaction history for a specific physical asset."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     # Verify the asset belongs to this ledger
     asset = get_physical_asset_by_id(db=db, physical_asset_id=asset_id)
-    if not asset or asset.ledger_id != ledger_id:
+    if asset is None or asset.ledger_id != ledger_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Physical asset not found")
 
     transactions = get_asset_transactions_by_asset_id(
@@ -405,7 +405,7 @@ def get_all_asset_transactions(
 ):
     """Get all asset transactions for a ledger."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     transactions = get_asset_transactions_by_ledger_id(
@@ -429,13 +429,13 @@ def delete_asset_transaction_endpoint(
 ):
     """Delete an asset transaction and its linked financial transaction."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     # Verify the asset transaction belongs to this ledger
     from app.repositories.asset_transaction_crud import get_asset_transaction_by_id
     asset_transaction = get_asset_transaction_by_id(db=db, asset_transaction_id=asset_transaction_id)
-    if not asset_transaction or asset_transaction.ledger_id != ledger_id:
+    if asset_transaction is None or asset_transaction.ledger_id != ledger_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Asset transaction not found")
 
     try:
@@ -464,13 +464,13 @@ def update_asset_transaction_endpoint(
 ):
     """Update an asset transaction."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     # Verify the asset transaction belongs to this ledger
     from app.repositories.asset_transaction_crud import get_asset_transaction_by_id
     asset_transaction = get_asset_transaction_by_id(db=db, asset_transaction_id=asset_transaction_id)
-    if not asset_transaction or asset_transaction.ledger_id != ledger_id:
+    if asset_transaction is None or asset_transaction.ledger_id != ledger_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Asset transaction not found")
 
     try:

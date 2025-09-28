@@ -35,7 +35,7 @@ def get_income_expense_trend(
     db: Session = Depends(get_db),
 ):
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Ledger not found"
         )
@@ -61,7 +61,7 @@ def get_current_month_overview(
     db: Session = Depends(get_db),
 ):
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Ledger not found"
         )
@@ -94,14 +94,14 @@ def get_category_trend(
     db: Session = Depends(get_db),
 ):
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Ledger not found"
         )
 
     # Check if category exists and belongs to the user
     category = db.query(Category).filter(Category.category_id == category_id).first()
-    if not category or category.user_id != user.user_id:
+    if category is None or category.user_id != user.user_id:  # type: ignore
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Category not found"
         )
@@ -129,7 +129,7 @@ def get_tag_trend(
 ):
     # Verify ledger belongs to user
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Ledger not found"
         )
@@ -142,7 +142,7 @@ def get_tag_trend(
             .filter(Tag.name == tag_name, Tag.user_id == user.user_id)
             .first()
         )
-        if not tag:
+        if tag is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Tag with name '{tag_name}' not found or does not belong to user",

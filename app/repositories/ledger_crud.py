@@ -3,6 +3,7 @@ from datetime import datetime
 from datetime import datetime, timezone
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
+from typing import Optional
 
 from app.models.model import Ledger
 from app.repositories.user_crud import get_user_by_username
@@ -43,7 +44,7 @@ def get_ledgers_by_username(db: Session, username: str):
     return db.query(Ledger).filter(Ledger.user_id == user.user_id).all()
 
 
-def get_ledger_by_id(db: Session, ledger_id: int):
+def get_ledger_by_id(db: Session, ledger_id: int) -> Optional[Ledger]:
     return db.query(Ledger).filter(Ledger.ledger_id == ledger_id).first()
 
 

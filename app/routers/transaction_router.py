@@ -30,7 +30,7 @@ def get_transactions_by_account(
     db: Session = Depends(get_db),
 ):
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Account not found")
 
     offset = (page - 1) * per_page
@@ -66,13 +66,13 @@ def get_transaction_by_id(
     db: Session = Depends(get_db),
 ):
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     transaction = transaction_crud.get_transaction_by_id(
         db=db, transaction_id=transaction_id
     )
-    if not transaction:
+    if transaction is None:
         raise HTTPException(status_code=404, detail="Transaction not found")
 
     return {
@@ -189,7 +189,7 @@ def get_split_transactions(
 ):
     # Ensure the ledger belongs to the user
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     # Fetch the split transactions
@@ -246,11 +246,11 @@ def get_transfer_transactions(
     )
 
     if (
-        not source_ledger
-        or not destination_ledger
+        source_ledger is None
+        or destination_ledger is None
         or source_ledger.user_id != user.user_id
         or destination_ledger.user_id != user.user_id
-    ):
+    ):  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found or access denied")
 
     return transfer_details
@@ -272,7 +272,7 @@ def delete_transaction(
 ):
     # Ensure the ledger belongs to the user
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     # Delete the transaction
@@ -300,7 +300,7 @@ def update_transaction(
 ):
     # Ensure the ledger belongs to the user
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     # Update the transaction
@@ -332,7 +332,7 @@ def get_note_suggestions(
 ):
     # Ensure the ledger belongs to the user
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     # Fetch the suggestions
@@ -380,7 +380,7 @@ def get_transactions_by_ledger(
     db: Session = Depends(get_db),
 ):
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     offset = (page - 1) * per_page

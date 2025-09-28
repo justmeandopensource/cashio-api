@@ -1,7 +1,6 @@
 from typing import List, Optional
 from decimal import Decimal
 from datetime import datetime
-import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -54,7 +53,7 @@ def create_amc(
 ):
     """Create a new AMC for a ledger."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     try:
@@ -83,7 +82,7 @@ def get_amcs(
 ):
     """Get all AMCs for a ledger."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     amcs = get_amcs_by_ledger_id(db=db, ledger_id=ledger_id)
@@ -104,12 +103,12 @@ def update_amc(
 ):
     """Update an AMC."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     # Verify the AMC belongs to this ledger
     amc = get_amc_by_id(db=db, amc_id=amc_id)
-    if not amc or amc.ledger_id != ledger_id:
+    if amc is None or amc.ledger_id != ledger_id:  # type: ignore
         raise HTTPException(status_code=404, detail="AMC not found")
 
     updated_amc = update_amc_repo(
@@ -130,12 +129,12 @@ def delete_amc(
 ):
     """Delete an AMC."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     # Verify the AMC belongs to this ledger
     amc = get_amc_by_id(db=db, amc_id=amc_id)
-    if not amc or amc.ledger_id != ledger_id:
+    if amc is None or amc.ledger_id != ledger_id:  # type: ignore
         raise HTTPException(status_code=404, detail="AMC not found")
 
     delete_amc_repo(db=db, amc_id=amc_id)
@@ -156,7 +155,7 @@ def create_mutual_fund(
 ):
     """Create a new mutual fund for a ledger."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     try:
@@ -185,7 +184,7 @@ def get_mutual_funds(
 ):
     """Get all mutual funds for a ledger."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     funds = get_mutual_funds_by_ledger_id(db=db, ledger_id=ledger_id)
@@ -205,11 +204,11 @@ def get_mutual_fund(
 ):
     """Get a specific mutual fund."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     fund = get_mutual_fund_by_id(db=db, mutual_fund_id=fund_id)
-    if not fund or fund.ledger_id != ledger_id:
+    if fund is None or fund.ledger_id != ledger_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Mutual fund not found")
 
     return fund
@@ -229,12 +228,12 @@ def update_mutual_fund(
 ):
     """Update a mutual fund."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     # Verify the fund belongs to this ledger
     fund = get_mutual_fund_by_id(db=db, mutual_fund_id=fund_id)
-    if not fund or fund.ledger_id != ledger_id:
+    if fund is None or fund.ledger_id != ledger_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Mutual fund not found")
 
     updated_fund = update_mutual_fund_repo(
@@ -257,12 +256,12 @@ def update_fund_nav(
 ):
     """Update the latest NAV for a mutual fund."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     # Verify the fund belongs to this ledger
     fund = get_mutual_fund_by_id(db=db, mutual_fund_id=fund_id)
-    if not fund or fund.ledger_id != ledger_id:
+    if fund is None or fund.ledger_id != ledger_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Mutual fund not found")
 
     updated_fund = update_mutual_fund_nav(
@@ -283,12 +282,12 @@ def delete_mutual_fund(
 ):
     """Delete a mutual fund."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     # Verify the fund belongs to this ledger
     fund = get_mutual_fund_by_id(db=db, mutual_fund_id=fund_id)
-    if not fund or fund.ledger_id != ledger_id:
+    if fund is None or fund.ledger_id != ledger_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Mutual fund not found")
 
     delete_mutual_fund_repo(db=db, mutual_fund_id=fund_id)
@@ -309,7 +308,7 @@ def buy_mutual_fund(
 ):
     """Buy mutual fund units."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     # Ensure this is a buy transaction
@@ -346,7 +345,7 @@ def sell_mutual_fund(
 ):
     """Sell mutual fund units."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     # Ensure this is a sell transaction
@@ -386,17 +385,17 @@ def switch_mutual_fund_units(
 ):
     """Switch mutual fund units from one fund to another."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     source_fund = get_mutual_fund_by_id(db, switch_data.source_mutual_fund_id)
     target_fund = get_mutual_fund_by_id(db, switch_data.target_mutual_fund_id)
 
-    if not source_fund or source_fund.ledger_id != ledger_id:
+    if source_fund is None or source_fund.ledger_id != ledger_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Source mutual fund not found")
-    if not target_fund or target_fund.ledger_id != ledger_id:
+    if target_fund is None or target_fund.ledger_id != ledger_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Target mutual fund not found")
-    if source_fund.mutual_fund_id == target_fund.mutual_fund_id:
+    if source_fund.mutual_fund_id == target_fund.mutual_fund_id:  # type: ignore
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot switch to the same fund",
@@ -413,7 +412,7 @@ def switch_mutual_fund_units(
         units=switch_data.source_units,
         nav_per_unit=source_nav,
         amount_excluding_charges=switch_data.source_amount,
-        other_charges=0,
+        other_charges=Decimal('0'),
         expense_category_id=None,
         account_id=None,  # No direct account involvement for switch
         target_fund_id=switch_data.target_mutual_fund_id,
@@ -427,15 +426,13 @@ def switch_mutual_fund_units(
     )
 
     # Create switch_in transaction (buying into target fund)
-    value_switched_out = Decimal(str(switch_data.source_amount))
-
     switch_in_transaction_data = mutual_funds_schema.MfTransactionCreate(
         mutual_fund_id=switch_data.target_mutual_fund_id,
         transaction_type="switch_in",
         units=switch_data.target_units,
         nav_per_unit=target_nav,
         amount_excluding_charges=switch_data.target_amount,
-        other_charges=0,
+        other_charges=Decimal('0'),
         expense_category_id=None,
         account_id=None,  # No direct account involvement for switch
         target_fund_id=switch_data.source_mutual_fund_id,
@@ -443,7 +440,7 @@ def switch_mutual_fund_units(
         notes=switch_data.notes,
         to_nav=source_nav, # This is not used in switch_in logic, but kept for schema consistency
         # linked_transaction_id will be set after both transactions are created
-        cost_basis_of_units_sold=float(switch_data.target_amount) # Use target amount as cost basis for target fund
+        cost_basis_of_units_sold=Decimal(str(switch_data.target_amount)) # Use target amount as cost basis for target fund
     )
     switch_in_transaction = create_mf_transaction(
         db=db, ledger_id=ledger_id, transaction_data=switch_in_transaction_data
@@ -451,8 +448,8 @@ def switch_mutual_fund_units(
 
     # Now link the two transactions
     from app.repositories.mf_transaction_crud import update_mf_transaction_linked_id
-    update_mf_transaction_linked_id(db, switch_out_transaction.mf_transaction_id, switch_in_transaction.mf_transaction_id)
-    update_mf_transaction_linked_id(db, switch_in_transaction.mf_transaction_id, switch_out_transaction.mf_transaction_id)
+    update_mf_transaction_linked_id(db, switch_out_transaction.mf_transaction_id, switch_in_transaction.mf_transaction_id)  # type: ignore
+    update_mf_transaction_linked_id(db, switch_in_transaction.mf_transaction_id, switch_out_transaction.mf_transaction_id)  # type: ignore
 
     return [switch_out_transaction, switch_in_transaction]
 
@@ -470,12 +467,12 @@ def get_fund_transactions(
 ):
     """Get transaction history for a specific mutual fund."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     # Verify the fund belongs to this ledger
     fund = get_mutual_fund_by_id(db=db, mutual_fund_id=fund_id)
-    if not fund or fund.ledger_id != ledger_id:
+    if fund is None or fund.ledger_id != ledger_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Mutual fund not found")
 
     transactions = get_mf_transactions_by_fund_id(
@@ -501,7 +498,7 @@ def get_all_mf_transactions(
 ):
     """Get all MF transactions for a ledger."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     transactions = get_mf_transactions_by_ledger_id(
@@ -527,13 +524,13 @@ def delete_mf_transaction_endpoint(
 ):
     """Delete an MF transaction and its linked financial transaction."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     # Verify the transaction belongs to this ledger
     from app.repositories.mf_transaction_crud import get_mf_transaction_by_id
     transaction = get_mf_transaction_by_id(db=db, mf_transaction_id=transaction_id)
-    if not transaction or transaction.ledger_id != ledger_id:
+    if transaction is None or transaction.ledger_id != ledger_id:  # type: ignore
         raise HTTPException(status_code=404, detail="MF transaction not found")
 
     try:
@@ -562,13 +559,13 @@ def update_mf_transaction_endpoint(
 ):
     """Update an MF transaction."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     # Verify the transaction belongs to this ledger
     from app.repositories.mf_transaction_crud import get_mf_transaction_by_id
     transaction = get_mf_transaction_by_id(db=db, mf_transaction_id=transaction_id)
-    if not transaction or transaction.ledger_id != ledger_id:
+    if transaction is None or transaction.ledger_id != ledger_id:  # type: ignore
         raise HTTPException(status_code=404, detail="MF transaction not found")
 
     try:
@@ -599,7 +596,7 @@ def bulk_fetch_nav(
 ):
     """Fetch latest NAV for multiple mutual funds by scheme codes."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     try:
@@ -638,7 +635,7 @@ def bulk_update_nav(
 ):
     """Bulk update NAV for multiple mutual funds."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     try:
@@ -685,7 +682,7 @@ def get_yearly_investments(
 ):
     """Get yearly investment summary for mutual funds."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     from app.models.model import MfTransaction
@@ -724,7 +721,6 @@ def get_yearly_investments(
     if yearly_investments:
         current_year = datetime.now().year
         min_year = min(inv.year for inv in yearly_investments)
-        max_year = max(inv.year for inv in yearly_investments)
 
         # Create a complete list from min_year to current_year
         complete_years = {}
@@ -758,7 +754,7 @@ def get_corpus_growth(
 ):
     """Get cumulative corpus growth for mutual funds by month."""
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     from app.models.model import MfTransaction

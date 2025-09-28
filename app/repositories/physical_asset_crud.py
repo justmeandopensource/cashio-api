@@ -118,13 +118,13 @@ def update_physical_asset(db: Session, physical_asset_id: int, asset_update: Phy
 
     # Update fields
     if asset_update.name is not None:
-        db_asset.name = asset_update.name
+        db_asset.name = asset_update.name  # type: ignore
     if asset_update.asset_type_id is not None:
-        db_asset.asset_type_id = asset_update.asset_type_id
+        db_asset.asset_type_id = asset_update.asset_type_id  # type: ignore
     if asset_update.notes is not None:
-        db_asset.notes = asset_update.notes
+        db_asset.notes = asset_update.notes  # type: ignore
 
-    db_asset.updated_at = datetime.now(timezone.utc)
+    db_asset.updated_at = datetime.now(timezone.utc)  # type: ignore
 
     db.commit()
     db.refresh(db_asset)
@@ -142,10 +142,10 @@ def update_physical_asset_price(db: Session, physical_asset_id: int, price_updat
         )
 
     # Update price and recalculate current value
-    db_asset.latest_price_per_unit = Decimal(str(price_update.latest_price_per_unit))
-    db_asset.current_value = db_asset.total_quantity * db_asset.latest_price_per_unit
-    db_asset.last_price_update = datetime.now(timezone.utc)
-    db_asset.updated_at = datetime.now(timezone.utc)
+    db_asset.latest_price_per_unit = Decimal(str(price_update.latest_price_per_unit))  # type: ignore
+    db_asset.current_value = db_asset.total_quantity * db_asset.latest_price_per_unit  # type: ignore
+    db_asset.last_price_update = datetime.now(timezone.utc)  # type: ignore
+    db_asset.updated_at = datetime.now(timezone.utc)  # type: ignore
 
     db.commit()
     db.refresh(db_asset)
@@ -190,18 +190,18 @@ def update_asset_quantities_and_costs(db: Session, physical_asset_id: int, quant
 
     new_quantity = db_asset.total_quantity + quantity_change
 
-    if new_quantity < 0:
+    if new_quantity < 0:  # type: ignore
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Insufficient asset quantity for sell transaction"
         )
 
     # Calculate new average cost
-    if new_quantity == 0:
+    if new_quantity == 0:  # type: ignore
         new_average_cost = Decimal('0')
     else:
         # If buying, recalculate the average cost.
-        if quantity_change > 0:
+        if quantity_change > 0:  # type: ignore
             current_total_cost = db_asset.total_quantity * db_asset.average_cost_per_unit
             new_total_cost = current_total_cost + total_cost
             new_average_cost = new_total_cost / new_quantity
@@ -210,15 +210,15 @@ def update_asset_quantities_and_costs(db: Session, physical_asset_id: int, quant
             new_average_cost = db_asset.average_cost_per_unit
 
     # Update asset
-    db_asset.total_quantity = new_quantity
-    db_asset.average_cost_per_unit = new_average_cost
+    db_asset.total_quantity = new_quantity  # type: ignore
+    db_asset.average_cost_per_unit = new_average_cost  # type: ignore
     
     if price_per_unit is not None:
-        db_asset.latest_price_per_unit = price_per_unit
-        db_asset.last_price_update = datetime.now(timezone.utc)
+        db_asset.latest_price_per_unit = price_per_unit  # type: ignore
+        db_asset.last_price_update = datetime.now(timezone.utc)  # type: ignore
 
-    db_asset.current_value = new_quantity * db_asset.latest_price_per_unit
-    db_asset.updated_at = datetime.now(timezone.utc)
+    db_asset.current_value = new_quantity * db_asset.latest_price_per_unit  # type: ignore
+    db_asset.updated_at = datetime.now(timezone.utc)  # type: ignore
 
     db.commit()
     db.refresh(db_asset)

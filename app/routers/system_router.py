@@ -128,7 +128,7 @@ async def upload_backup_file(
     """
     Uploads a database backup file to the server.
     """
-    if not file.filename.endswith(".dump"):
+    if not file.filename or not file.filename.endswith(".dump"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid file type. Only .dump files are allowed.")
 
     safe_filename = os.path.basename(file.filename)

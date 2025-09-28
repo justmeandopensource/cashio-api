@@ -1,9 +1,10 @@
 from datetime import datetime, timezone
+from decimal import Decimal
+from uuid import UUID
 
 from sqlalchemy import (
-    UUID,
+    UUID as SQLUUID,
     Boolean,
-    Column,
     DateTime,
     Enum,
     ForeignKey,
@@ -13,7 +14,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
 )
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.connection import Base
 
@@ -21,13 +22,13 @@ from app.database.connection import Base
 class User(Base):
     __tablename__ = "users"
 
-    user_id = Column(Integer, primary_key=True)
-    full_name = Column(String(100), nullable=False)
-    username = Column(String(50), unique=True, nullable=False)
-    email = Column(String(100), unique=True, nullable=False)
-    hashed_password = Column(String(100), nullable=False)
-    created_at = Column(DateTime, default=datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=datetime.now(timezone.utc))
+    user_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    full_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    hashed_password: Mapped[str] = mapped_column(String(100), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
 
     ledgers = relationship("Ledger", back_populates="user")
     categories = relationship("Category", back_populates="user")
@@ -37,14 +38,14 @@ class User(Base):
 class Ledger(Base):
     __tablename__ = "ledgers"
 
-    ledger_id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
-    name = Column(String(100), nullable=False)
-    description = Column(String(100), nullable=True)
-    currency_symbol = Column(String(10), nullable=False)
-    notes = Column(String(500), nullable=True)
-    created_at = Column(DateTime, default=datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=datetime.now(timezone.utc))
+    ledger_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.user_id"), nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    description: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    currency_symbol: Mapped[str] = mapped_column(String(10), nullable=False)
+    notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="ledgers")
     accounts = relationship("Account", back_populates="ledger")
@@ -61,21 +62,21 @@ class Ledger(Base):
 class Account(Base):
     __tablename__ = "accounts"
 
-    account_id = Column(Integer, primary_key=True)
-    ledger_id = Column(Integer, ForeignKey("ledgers.ledger_id"), nullable=False)
-    parent_account_id = Column(
+    account_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    ledger_id: Mapped[int] = mapped_column(Integer, ForeignKey("ledgers.ledger_id"), nullable=False)
+    parent_account_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("accounts.account_id"), nullable=True
     )
-    name = Column(String(100), nullable=False)
-    description = Column(String(100), nullable=True)
-    type = Column(Enum("asset", "liability", name="account_type"), nullable=False)
-    is_group = Column(Boolean, default=False, nullable=False)
-    opening_balance = Column(Numeric(15, 2), default=0.00, nullable=False)
-    balance = Column(Numeric(15, 2), default=0.00, nullable=False)
-    net_balance = Column(Numeric(15, 2), default=0.00, nullable=False)
-    notes = Column(String(500), nullable=True)
-    created_at = Column(DateTime, default=datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=datetime.now(timezone.utc))
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    description: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    type: Mapped[str] = mapped_column(Enum("asset", "liability", name="account_type"), nullable=False)
+    is_group: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    opening_balance: Mapped[Decimal] = mapped_column(Numeric(15, 2), default=0.00, nullable=False)
+    balance: Mapped[Decimal] = mapped_column(Numeric(15, 2), default=0.00, nullable=False)
+    net_balance: Mapped[Decimal] = mapped_column(Numeric(15, 2), default=0.00, nullable=False)
+    notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
 
     ledger = relationship("Ledger", back_populates="accounts")
     parent_account = relationship(
@@ -94,14 +95,14 @@ class Account(Base):
 class Category(Base):
     __tablename__ = "categories"
 
-    category_id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
-    parent_category_id = Column(
+    category_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.user_id"), nullable=False)
+    parent_category_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("categories.category_id"), nullable=True
     )
-    name = Column(String(100), nullable=False)
-    type = Column(Enum("income", "expense", name="category_type"), nullable=False)
-    is_group = Column(Boolean, default=False, nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    type: Mapped[str] = mapped_column(Enum("income", "expense", name="category_type"), nullable=False)
+    is_group: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     user = relationship("User", back_populates="categories")
     parent_category = relationship(
@@ -117,22 +118,22 @@ class Category(Base):
 class Transaction(Base):
     __tablename__ = "transactions"
 
-    transaction_id = Column(Integer, primary_key=True)
-    account_id = Column(Integer, ForeignKey("accounts.account_id"), nullable=False)
-    category_id = Column(Integer, ForeignKey("categories.category_id"), nullable=True)
-    credit = Column(Numeric(15, 2), default=0.00, nullable=False)
-    debit = Column(Numeric(15, 2), default=0.00, nullable=False)
-    date = Column(DateTime, nullable=False)
-    notes = Column(String(500), nullable=True)
-    is_split = Column(Boolean, default=False, nullable=False)
-    is_transfer = Column(Boolean, default=False, nullable=False)
-    is_asset_transaction = Column(Boolean, default=False, nullable=False)
-    is_mf_transaction = Column(Boolean, default=False, nullable=False)
-    transfer_id = Column(UUID, nullable=True)
-    transfer_type = Column(
+    transaction_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    account_id: Mapped[int] = mapped_column(Integer, ForeignKey("accounts.account_id"), nullable=False)
+    category_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("categories.category_id"), nullable=True)
+    credit: Mapped[Decimal] = mapped_column(Numeric(15, 2), default=0.00, nullable=False)
+    debit: Mapped[Decimal] = mapped_column(Numeric(15, 2), default=0.00, nullable=False)
+    date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    is_split: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_transfer: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_asset_transaction: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_mf_transaction: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    transfer_id: Mapped[UUID | None] = mapped_column(SQLUUID, nullable=True)
+    transfer_type: Mapped[str | None] = mapped_column(
         Enum("source", "destination", name="transfer_type"), nullable=True
     )
-    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
 
     account = relationship("Account", back_populates="transactions")
     category = relationship("Category")
@@ -154,14 +155,14 @@ class Transaction(Base):
 class TransactionSplit(Base):
     __tablename__ = "transaction_splits"
 
-    split_id = Column(Integer, primary_key=True)
-    transaction_id = Column(
+    split_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    transaction_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("transactions.transaction_id"), nullable=False
     )
-    category_id = Column(Integer, ForeignKey("categories.category_id"), nullable=False)
-    credit = Column(Numeric(15, 2), default=0.00, nullable=False)
-    debit = Column(Numeric(15, 2), default=0.00, nullable=False)
-    notes = Column(String(500), nullable=True)
+    category_id: Mapped[int] = mapped_column(Integer, ForeignKey("categories.category_id"), nullable=False)
+    credit: Mapped[Decimal] = mapped_column(Numeric(15, 2), default=0.00, nullable=False)
+    debit: Mapped[Decimal] = mapped_column(Numeric(15, 2), default=0.00, nullable=False)
+    notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     transaction = relationship("Transaction", back_populates="splits")
     category = relationship("Category")
@@ -170,9 +171,9 @@ class TransactionSplit(Base):
 class Tag(Base):
     __tablename__ = "tags"
 
-    tag_id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
-    name = Column(String(50), nullable=False)
+    tag_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.user_id"), nullable=False)
+    name: Mapped[str] = mapped_column(String(50), nullable=False)
 
     user = relationship("User", back_populates="tags")
 
@@ -186,13 +187,13 @@ class Tag(Base):
 class TransactionTag(Base):
     __tablename__ = "transaction_tags"
 
-    id = Column(Integer, primary_key=True)
-    transaction_id = Column(
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    transaction_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey("transactions.transaction_id", ondelete="CASCADE"),
         nullable=False,
     )
-    tag_id = Column(
+    tag_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("tags.tag_id", ondelete="CASCADE"), nullable=False
     )
 
@@ -207,13 +208,13 @@ class TransactionTag(Base):
 class AssetType(Base):
     __tablename__ = "asset_types"
 
-    asset_type_id = Column(Integer, primary_key=True)
-    ledger_id = Column(Integer, ForeignKey("ledgers.ledger_id"), nullable=False)
-    name = Column(String(100), nullable=False)  # "Gold", "Silver", "Platinum"
-    unit_name = Column(String(50), nullable=False)  # "grams", "kilograms", "ounces"
-    unit_symbol = Column(String(10), nullable=False)  # "g", "kg", "oz"
-    description = Column(String(500), nullable=True)
-    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    asset_type_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    ledger_id: Mapped[int] = mapped_column(Integer, ForeignKey("ledgers.ledger_id"), nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)  # "Gold", "Silver", "Platinum"
+    unit_name: Mapped[str] = mapped_column(String(50), nullable=False)  # "grams", "kilograms", "ounces"
+    unit_symbol: Mapped[str] = mapped_column(String(10), nullable=False)  # "g", "kg", "oz"
+    description: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
 
     ledger = relationship("Ledger", back_populates="asset_types")
     physical_assets = relationship("PhysicalAsset", back_populates="asset_type")
@@ -227,28 +228,28 @@ class AssetType(Base):
 class PhysicalAsset(Base):
     __tablename__ = "physical_assets"
 
-    physical_asset_id = Column(Integer, primary_key=True)
-    ledger_id = Column(Integer, ForeignKey("ledgers.ledger_id"), nullable=False)
-    asset_type_id = Column(
+    physical_asset_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    ledger_id: Mapped[int] = mapped_column(Integer, ForeignKey("ledgers.ledger_id"), nullable=False)
+    asset_type_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("asset_types.asset_type_id"), nullable=False
     )
-    name = Column(String(100), nullable=False)  # "My Gold Collection"
-    total_quantity = Column(
+    name: Mapped[str] = mapped_column(String(100), nullable=False)  # "My Gold Collection"
+    total_quantity: Mapped[Decimal] = mapped_column(
         Numeric(15, 6), default=0, nullable=False
     )  # Total units owned
-    average_cost_per_unit = Column(
+    average_cost_per_unit: Mapped[Decimal] = mapped_column(
         Numeric(15, 2), default=0, nullable=False
     )  # Average cost per unit
-    latest_price_per_unit = Column(
+    latest_price_per_unit: Mapped[Decimal] = mapped_column(
         Numeric(15, 2), default=0, nullable=False
     )  # Manual latest price
-    last_price_update = Column(DateTime, nullable=True)  # When price was last updated
-    current_value = Column(
+    last_price_update: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)  # When price was last updated
+    current_value: Mapped[Decimal] = mapped_column(
         Numeric(15, 2), default=0, nullable=False
     )  # Auto-calculated: quantity * latest_price
-    notes = Column(String(500), nullable=True)
-    created_at = Column(DateTime, default=datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=datetime.now(timezone.utc))
+    notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
 
     ledger = relationship("Ledger", back_populates="physical_assets")
     asset_type = relationship("AssetType", back_populates="physical_assets")
@@ -266,24 +267,24 @@ class PhysicalAsset(Base):
 class AssetTransaction(Base):
     __tablename__ = "asset_transactions"
 
-    asset_transaction_id = Column(Integer, primary_key=True)
-    ledger_id = Column(Integer, ForeignKey("ledgers.ledger_id"), nullable=False)
-    physical_asset_id = Column(
+    asset_transaction_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    ledger_id: Mapped[int] = mapped_column(Integer, ForeignKey("ledgers.ledger_id"), nullable=False)
+    physical_asset_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("physical_assets.physical_asset_id"), nullable=False
     )
-    transaction_type = Column(
+    transaction_type: Mapped[str] = mapped_column(
         Enum("buy", "sell", name="asset_transaction_type"), nullable=False
     )
-    quantity = Column(Numeric(15, 6), nullable=False)
-    price_per_unit = Column(Numeric(15, 2), nullable=False)
-    total_amount = Column(Numeric(15, 2), nullable=False)
-    account_id = Column(Integer, ForeignKey("accounts.account_id"), nullable=False)
-    financial_transaction_id = Column(
+    quantity: Mapped[Decimal] = mapped_column(Numeric(15, 6), nullable=False)
+    price_per_unit: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
+    total_amount: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
+    account_id: Mapped[int] = mapped_column(Integer, ForeignKey("accounts.account_id"), nullable=False)
+    financial_transaction_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("transactions.transaction_id"), nullable=False
     )
-    transaction_date = Column(DateTime, nullable=False)
-    notes = Column(String(500), nullable=True)
-    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    transaction_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
 
     ledger = relationship("Ledger", back_populates="asset_transactions")
     physical_asset = relationship("PhysicalAsset", back_populates="asset_transactions")
@@ -294,11 +295,11 @@ class AssetTransaction(Base):
 class Amc(Base):
     __tablename__ = "amcs"
 
-    amc_id = Column(Integer, primary_key=True)
-    ledger_id = Column(Integer, ForeignKey("ledgers.ledger_id"), nullable=False)
-    name = Column(String(100), nullable=False)  # "HDFC", "ICICI", "SBI"
-    notes = Column(String(500), nullable=True)
-    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    amc_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    ledger_id: Mapped[int] = mapped_column(Integer, ForeignKey("ledgers.ledger_id"), nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)  # "HDFC", "ICICI", "SBI"
+    notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
 
     ledger = relationship("Ledger", back_populates="amcs")
     mutual_funds = relationship("MutualFund", back_populates="amc")
@@ -312,40 +313,40 @@ class Amc(Base):
 class MutualFund(Base):
     __tablename__ = "mutual_funds"
 
-    mutual_fund_id = Column(Integer, primary_key=True)
-    ledger_id = Column(Integer, ForeignKey("ledgers.ledger_id"), nullable=False)
-    amc_id = Column(
+    mutual_fund_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    ledger_id: Mapped[int] = mapped_column(Integer, ForeignKey("ledgers.ledger_id"), nullable=False)
+    amc_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("amcs.amc_id"), nullable=False
     )
-    name = Column(String(100), nullable=False)  # "HDFC Mid Cap Fund"
-    plan = Column(String(50), nullable=True)  # "Direct Growth", "Regular Reinvestment"
-    code = Column(String(50), nullable=True)  # Unique code for the fund
-    owner = Column(String(100), nullable=True)  # Owner name (optional)
-    total_units = Column(
+    name: Mapped[str] = mapped_column(String(100), nullable=False)  # "HDFC Mid Cap Fund"
+    plan: Mapped[str | None] = mapped_column(String(50), nullable=True)  # "Direct Growth", "Regular Reinvestment"
+    code: Mapped[str | None] = mapped_column(String(50), nullable=True)  # Unique code for the fund
+    owner: Mapped[str | None] = mapped_column(String(100), nullable=True)  # Owner name (optional)
+    total_units: Mapped[Decimal] = mapped_column(
         Numeric(15, 3), default=0, nullable=False
     )  # Balance units held (3 decimal places)
-    average_cost_per_unit = Column(
+    average_cost_per_unit: Mapped[Decimal] = mapped_column(
         Numeric(15, 4), default=0, nullable=False
     )  # Average cost per unit
-    latest_nav = Column(
+    latest_nav: Mapped[Decimal] = mapped_column(
         Numeric(15, 2), default=0, nullable=False
     )  # Latest NAV price (2 decimal places)
-    last_nav_update = Column(DateTime, nullable=True)  # When NAV was last updated
-    current_value = Column(
+    last_nav_update: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)  # When NAV was last updated
+    current_value: Mapped[Decimal] = mapped_column(
         Numeric(15, 2), default=0, nullable=False
     )  # Auto-calculated: total_units * latest_nav
-    total_realized_gain = Column(
+    total_realized_gain: Mapped[Decimal] = mapped_column(
         Numeric(15, 4), default=0, nullable=False
     )  # Cumulative realized gains from sales/switches
-    total_invested_cash = Column(
+    total_invested_cash: Mapped[Decimal] = mapped_column(
         Numeric(15, 4), default=0, nullable=False
     )  # Total cost basis of units currently held in this fund (including switches)
-    external_cash_invested = Column(
+    external_cash_invested: Mapped[Decimal] = mapped_column(
         Numeric(15, 4), default=0, nullable=False
     )  # Total cash invested from external sources (excluding switches)
-    notes = Column(String(500), nullable=True)
-    created_at = Column(DateTime, default=datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=datetime.now(timezone.utc))
+    notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
 
     ledger = relationship("Ledger", back_populates="mutual_funds")
     amc = relationship("Amc", back_populates="mutual_funds")
@@ -365,32 +366,32 @@ class MutualFund(Base):
 class MfTransaction(Base):
     __tablename__ = "mf_transactions"
 
-    mf_transaction_id = Column(Integer, primary_key=True)
-    ledger_id = Column(Integer, ForeignKey("ledgers.ledger_id"), nullable=False)
-    mutual_fund_id = Column(
+    mf_transaction_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    ledger_id: Mapped[int] = mapped_column(Integer, ForeignKey("ledgers.ledger_id"), nullable=False)
+    mutual_fund_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("mutual_funds.mutual_fund_id"), nullable=False
     )
-    transaction_type = Column(
+    transaction_type: Mapped[str] = mapped_column(
         Enum("buy", "sell", "switch_out", "switch_in", name="mf_transaction_type"),
         nullable=False,
     )
-    units = Column(Numeric(15, 3), nullable=False)
-    nav_per_unit = Column(Numeric(15, 2), nullable=False)
-    total_amount = Column(Numeric(15, 2), nullable=False)
-    amount_excluding_charges = Column(Numeric(15, 2), nullable=False)
-    other_charges = Column(Numeric(15, 2), nullable=False, default=0)
-    account_id = Column(Integer, ForeignKey("accounts.account_id"), nullable=True)
-    target_fund_id = Column(Integer, ForeignKey("mutual_funds.mutual_fund_id"), nullable=True)
-    financial_transaction_id = Column(
+    units: Mapped[Decimal] = mapped_column(Numeric(15, 3), nullable=False)
+    nav_per_unit: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
+    total_amount: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
+    amount_excluding_charges: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False)
+    other_charges: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False, default=0)
+    account_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("accounts.account_id"), nullable=True)
+    target_fund_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("mutual_funds.mutual_fund_id"), nullable=True)
+    financial_transaction_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("transactions.transaction_id"), nullable=True
     )
-    linked_charge_transaction_id = Column(Integer, ForeignKey("transactions.transaction_id"), nullable=True)
-    transaction_date = Column(DateTime, nullable=False)
-    notes = Column(String(500), nullable=True)
-    created_at = Column(DateTime, default=datetime.now(timezone.utc))
-    linked_transaction_id = Column(Integer, nullable=True)
-    realized_gain = Column(Numeric(15, 2), nullable=True)
-    cost_basis_of_units_sold = Column(Numeric(15, 2), nullable=True)
+    linked_charge_transaction_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("transactions.transaction_id"), nullable=True)
+    transaction_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
+    linked_transaction_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    realized_gain: Mapped[Decimal | None] = mapped_column(Numeric(15, 2), nullable=True)
+    cost_basis_of_units_sold: Mapped[Decimal | None] = mapped_column(Numeric(15, 2), nullable=True)
 
     ledger = relationship("Ledger", back_populates="mf_transactions")
     mutual_fund = relationship("MutualFund", foreign_keys=[mutual_fund_id], back_populates="mf_transactions")

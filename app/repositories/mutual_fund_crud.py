@@ -69,7 +69,7 @@ def update_mutual_fund(
     try:
         for field, value in update_data.items():
             setattr(db_fund, field, value)
-        db_fund.updated_at = datetime.now(timezone.utc)
+        db_fund.updated_at = datetime.now(timezone.utc)  # type: ignore[reportAttributeAccessIssue]
         db.commit()
         db.refresh(db_fund)
         return db_fund
@@ -103,7 +103,7 @@ def update_mutual_fund_nav(
 
 
 def update_mutual_fund_balances(
-    db: Session, mutual_fund_id: int, units_change: float, total_amount: float
+    db: Session, mutual_fund_id: int, units_change: Decimal, total_amount: Decimal
 ) -> MutualFund:
     """Update mutual fund balances after a transaction."""
     db_fund = db.query(MutualFund).filter(MutualFund.mutual_fund_id == mutual_fund_id).first()
@@ -113,29 +113,29 @@ def update_mutual_fund_balances(
         )
 
     # Convert parameters to Decimal for consistent arithmetic
-    units_change = Decimal(str(units_change))
-    total_amount = Decimal(str(total_amount))
+    units_change = Decimal(str(units_change))  # type: ignore[reportAssignmentType]
+    total_amount = Decimal(str(total_amount))  # type: ignore[reportAssignmentType]
 
-    new_total_units = db_fund.total_units + units_change
+    new_total_units = db_fund.total_units + units_change  # type: ignore[reportOperatorIssue]
 
-    if new_total_units < 0:
+    if new_total_units < 0:  # type: ignore[reportGeneralTypeIssues]
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Insufficient units for transaction",
         )
 
     # Calculate new average cost per unit
-    if new_total_units == 0:
+    if new_total_units == 0:  # type: ignore[reportGeneralTypeIssues]
         new_avg_cost = 0
     else:
         current_invested = db_fund.total_units * db_fund.average_cost_per_unit
-        new_invested = current_invested + total_amount
+        new_invested = current_invested + total_amount  # type: ignore[reportOperatorIssue]
         new_avg_cost = new_invested / new_total_units
 
-    db_fund.total_units = new_total_units
-    db_fund.average_cost_per_unit = new_avg_cost
-    db_fund.current_value = new_total_units * db_fund.latest_nav
-    db_fund.updated_at = datetime.now(timezone.utc)
+    db_fund.total_units = new_total_units  # type: ignore[reportAttributeAccessIssue]
+    db_fund.average_cost_per_unit = new_avg_cost  # type: ignore[reportAttributeAccessIssue]
+    db_fund.current_value = new_total_units * db_fund.latest_nav  # type: ignore[reportAttributeAccessIssue]
+    db_fund.updated_at = datetime.now(timezone.utc)  # type: ignore[reportAttributeAccessIssue]
 
     db.commit()
     db.refresh(db_fund)
@@ -171,10 +171,10 @@ def bulk_update_mutual_fund_navs(
                 continue  # Skip if fund not found
 
             # Update NAV and recalculate current value
-            db_fund.latest_nav = latest_nav
-            db_fund.last_nav_update = datetime.now(timezone.utc)
-            db_fund.current_value = db_fund.total_units * latest_nav
-            db_fund.updated_at = datetime.now(timezone.utc)
+            db_fund.latest_nav = latest_nav  # type: ignore[reportAttributeAccessIssue]
+            db_fund.last_nav_update = datetime.now(timezone.utc)  # type: ignore[reportAttributeAccessIssue]
+            db_fund.current_value = db_fund.total_units * latest_nav  # type: ignore[reportAttributeAccessIssue]
+            db_fund.updated_at = datetime.now(timezone.utc)  # type: ignore[reportAttributeAccessIssue]  # type: ignore[reportAttributeAccessIssue]
 
             updated_ids.append(mutual_fund_id)
 
@@ -197,7 +197,7 @@ def delete_mutual_fund(db: Session, mutual_fund_id: int) -> None:
         )
 
     # Check if fund has any units
-    if db_fund.total_units != 0:
+    if db_fund.total_units != 0:  # type: ignore[reportGeneralTypeIssues]
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot delete mutual fund with remaining units. Redeem all units first.",

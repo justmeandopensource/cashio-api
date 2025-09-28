@@ -28,7 +28,7 @@ def get_ledger_accounts(
     db: Session = Depends(get_db),
 ):
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     accounts = account_crud.get_accounts_by_ledger_id(
@@ -52,7 +52,7 @@ def get_account(
     db: Session = Depends(get_db),
 ):
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     account = account_crud.get_account_by_id(db=db, account_id=account_id)
@@ -71,7 +71,7 @@ def create_account(
     db: Session = Depends(get_db),
 ):
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Ledger not found"
         )
@@ -102,7 +102,7 @@ def get_group_accounts_by_type(
     db: Session = Depends(get_db),
 ):
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Ledger not found"
         )
@@ -126,13 +126,13 @@ def update_account_details(
     db: Session = Depends(get_db),
 ):
     ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
-    if not ledger or ledger.user_id != user.user_id:
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Ledger not found"
         )
 
     account = account_crud.get_account_by_id(db=db, account_id=account_id)
-    if not account or account.ledger_id != ledger_id:
+    if account is None or account.ledger_id != ledger_id:  # type: ignore
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Account not found"
         )

@@ -3,12 +3,9 @@ NAV fetching service for mutual funds using mfapi.in API
 """
 
 import asyncio
-import time
-from decimal import Decimal
-from typing import List, Optional
+from typing import List
 
 import httpx
-from pydantic import BaseModel
 
 from app.schemas.mutual_funds_schema import NavFetchResult
 
@@ -32,7 +29,7 @@ class NavService:
                     return NavFetchResult(
                         scheme_code=scheme_code,
                         success=False,
-                        error_message="Scheme code not found"
+                        error_message="Scheme code not found",
                     )
 
                 response.raise_for_status()
@@ -44,7 +41,7 @@ class NavService:
                     return NavFetchResult(
                         scheme_code=scheme_code,
                         success=False,
-                        error_message="No NAV data available"
+                        error_message="No NAV data available",
                     )
 
                 latest_nav = nav_data[0]  # Most recent NAV is first
@@ -55,26 +52,22 @@ class NavService:
                     fund_name=fund_name,
                     nav_value=float(latest_nav.get("nav", 0)),
                     nav_date=latest_nav.get("date"),
-                    success=True
+                    success=True,
                 )
 
         except httpx.TimeoutException:
             return NavFetchResult(
-                scheme_code=scheme_code,
-                success=False,
-                error_message="Request timeout"
+                scheme_code=scheme_code, success=False, error_message="Request timeout"
             )
         except httpx.HTTPStatusError as e:
             return NavFetchResult(
                 scheme_code=scheme_code,
                 success=False,
-                error_message=f"HTTP {e.response.status_code}: {e.response.text}"
+                error_message=f"HTTP {e.response.status_code}: {e.response.text}",
             )
         except Exception as e:
             return NavFetchResult(
-                scheme_code=scheme_code,
-                success=False,
-                error_message=str(e)
+                scheme_code=scheme_code, success=False, error_message=str(e)
             )
 
     @staticmethod
@@ -96,12 +89,14 @@ class NavService:
     @staticmethod
     def fetch_nav_bulk_sync(scheme_codes: List[str]) -> List[NavFetchResult]:
         """Synchronous wrapper for bulk NAV fetching."""
+
         async def run_async():
             return await NavService.fetch_nav_bulk(scheme_codes)
 
         # Run the async function in a new event loop
         try:
-            import nest_asyncio
+            import nest_asyncio  # type: ignore[import]
+
             nest_asyncio.apply()
         except ImportError:
             pass
@@ -112,3 +107,4 @@ class NavService:
             return loop.run_until_complete(run_async())
         finally:
             loop.close()
+

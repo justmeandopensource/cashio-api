@@ -18,7 +18,7 @@ def create_mf_transaction(
 
     # Validate mutual fund exists and belongs to ledger
     fund = get_mutual_fund_by_id(db, transaction_data.mutual_fund_id)
-    if not fund or fund.ledger_id != ledger_id:
+    if not fund or fund.ledger_id != ledger_id:  # type: ignore
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Mutual fund not found"
         )
@@ -40,11 +40,11 @@ def create_mf_transaction(
                     detail="Account ID required for buy/sell transactions",
                 )
             account = account_crud.get_account_by_id(db, transaction_data.account_id)
-            if not account or account.ledger_id != ledger_id:
+            if not account or account.ledger_id != ledger_id:  # type: ignore
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND, detail="Account not found"
                 )
-            if account.is_group:
+            if account.is_group:  # type: ignore
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Cannot use group accounts for transactions. Please select a leaf account.",
@@ -80,7 +80,7 @@ def create_mf_transaction(
 
             # Validate sufficient units for sell transactions BEFORE creating financial transactions
             if transaction_data.transaction_type == "sell":
-                if fund.total_units < transaction_data.units:
+                if fund.total_units < transaction_data.units:  # type: ignore
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail=f"Insufficient units in fund. Available: {fund.total_units}, Requested: {transaction_data.units}",
@@ -109,8 +109,8 @@ def create_mf_transaction(
 
             # Update account balance for main transaction
             account_amount_change = amount_excluding_charges if transaction_type_financial == "credit" else -amount_excluding_charges
-            account.balance = account.balance + account_amount_change
-            account.net_balance = account.net_balance + account_amount_change
+            account.balance = account.balance + account_amount_change  # type: ignore
+            account.net_balance = account.net_balance + account_amount_change  # type: ignore
 
             # Create charges transaction if other_charges > 0
             linked_charge_transaction_id = None
@@ -145,8 +145,8 @@ def create_mf_transaction(
                 linked_charge_transaction_id = charge_transaction.transaction_id
 
                 # Update account balance for charges
-                account.balance = account.balance - other_charges
-                account.net_balance = account.net_balance - other_charges
+                account.balance = account.balance - other_charges  # type: ignore
+                account.net_balance = account.net_balance - other_charges  # type: ignore
 
             db.commit()
 
@@ -160,24 +160,24 @@ def create_mf_transaction(
                 else:
                     cost_basis_of_units_sold = Decimal(str(transaction_data.units)) * fund.average_cost_per_unit
                 realized_gain = total_amount - cost_basis_of_units_sold
-                fund.total_realized_gain += realized_gain
-                fund.total_invested_cash -= cost_basis_of_units_sold
-                fund.external_cash_invested -= cost_basis_of_units_sold
+                fund.total_realized_gain += realized_gain  # type: ignore
+                fund.total_invested_cash -= cost_basis_of_units_sold  # type: ignore
+                fund.external_cash_invested -= cost_basis_of_units_sold  # type: ignore
 
             # Update fund balances
             units_change = Decimal(str(transaction_data.units)) if transaction_data.transaction_type == "buy" else -Decimal(str(transaction_data.units))
             fund_amount_change = amount_excluding_charges if transaction_data.transaction_type == "buy" else -cost_basis_of_units_sold
-            update_mutual_fund_balances(db, fund.mutual_fund_id, units_change, float(fund_amount_change))
+            update_mutual_fund_balances(db, fund.mutual_fund_id, units_change, float(fund_amount_change))  # type: ignore
 
             if transaction_data.transaction_type == "buy":
-                fund.total_invested_cash += amount_excluding_charges
-                fund.external_cash_invested += amount_excluding_charges
+                fund.total_invested_cash += amount_excluding_charges  # type: ignore
+                fund.external_cash_invested += amount_excluding_charges  # type: ignore
 
             if transaction_data.transaction_type in ["buy", "sell"]:
-                fund.latest_nav = nav_per_unit
-                fund.last_nav_update = transaction_data.transaction_date
-                fund.current_value = fund.total_units * fund.latest_nav
-                fund.updated_at = datetime.now(timezone.utc)
+                fund.latest_nav = nav_per_unit  # type: ignore
+                fund.last_nav_update = transaction_data.transaction_date  # type: ignore
+                fund.current_value = fund.total_units * fund.latest_nav  # type: ignore
+                fund.updated_at = datetime.now(timezone.utc)  # type: ignore
                 db.commit()
 
         elif transaction_data.transaction_type == "switch_out":
@@ -187,7 +187,7 @@ def create_mf_transaction(
                     detail="Target fund ID required for switch_out transactions",
                 )
             target_fund = get_mutual_fund_by_id(db, transaction_data.target_fund_id)
-            if not target_fund or target_fund.ledger_id != ledger_id:
+            if not target_fund or target_fund.ledger_id != ledger_id:  # type: ignore
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND, detail="Target fund not found"
                 )
@@ -197,12 +197,12 @@ def create_mf_transaction(
                     detail="Cannot switch to the same fund",
                 )
             # Use exact comparison since we now use Decimal arithmetic
-            if fund.total_units < transaction_data.units:
+            if fund.total_units < transaction_data.units:  # type: ignore
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Insufficient units in source fund. Available: {fund.total_units}, Requested: {transaction_data.units}",
                 )
-            if transaction_data.nav_per_unit <= 0:
+            if transaction_data.nav_per_unit <= 0:  # type: ignore
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="NAV per unit must be greater than 0 for switch_out transactions",
@@ -213,23 +213,23 @@ def create_mf_transaction(
 
             total_value_switched_out = from_units * from_nav
             # For switching all units, use exact total invested to avoid rounding errors
-            if from_units == Decimal(str(fund.total_units)):
+            if from_units == Decimal(str(fund.total_units)):  # type: ignore
                 cost_basis_of_units_sold = fund.total_invested_cash
             else:
                 cost_basis_of_units_sold = from_units * fund.average_cost_per_unit
             realized_gain = total_value_switched_out - cost_basis_of_units_sold
 
-            fund.total_realized_gain += realized_gain
+            fund.total_realized_gain += realized_gain  # type: ignore
 
             # Update source fund balances
-            update_mutual_fund_balances(db, fund.mutual_fund_id, -from_units, -float(cost_basis_of_units_sold))
+            update_mutual_fund_balances(db, fund.mutual_fund_id, -from_units, -float(cost_basis_of_units_sold))  # type: ignore
 
-            fund.total_invested_cash -= cost_basis_of_units_sold
+            fund.total_invested_cash -= cost_basis_of_units_sold  # type: ignore
 
-            fund.latest_nav = from_nav
-            fund.last_nav_update = transaction_data.transaction_date
-            fund.current_value = fund.total_units * fund.latest_nav
-            fund.updated_at = datetime.now(timezone.utc)
+            fund.latest_nav = from_nav  # type: ignore
+            fund.last_nav_update = transaction_data.transaction_date  # type: ignore
+            fund.current_value = fund.total_units * fund.latest_nav  # type: ignore
+            fund.updated_at = datetime.now(timezone.utc)  # type: ignore
             db.commit()
 
             total_amount = total_value_switched_out
@@ -242,7 +242,7 @@ def create_mf_transaction(
                     detail="Source fund ID required for switch_in transactions",
                 )
             source_fund = get_mutual_fund_by_id(db, transaction_data.target_fund_id)
-            if not source_fund or source_fund.ledger_id != ledger_id:
+            if not source_fund or source_fund.ledger_id != ledger_id:  # type: ignore
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND, detail="Source fund not found"
                 )
@@ -251,7 +251,7 @@ def create_mf_transaction(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Cannot switch from the same fund",
                 )
-            if transaction_data.nav_per_unit <= 0:
+            if transaction_data.nav_per_unit <= 0:  # type: ignore
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="NAV per unit must be greater than 0 for switch_in transactions",
@@ -267,14 +267,14 @@ def create_mf_transaction(
             cost_basis_of_units_sold = Decimal(str(transaction_data.cost_basis_of_units_sold))
 
             # Update target fund balances
-            update_mutual_fund_balances(db, fund.mutual_fund_id, to_units, float(cost_basis_of_units_sold))
+            update_mutual_fund_balances(db, fund.mutual_fund_id, to_units, float(cost_basis_of_units_sold))  # type: ignore
 
-            fund.total_invested_cash += cost_basis_of_units_sold
+            fund.total_invested_cash += cost_basis_of_units_sold  # type: ignore
 
-            fund.latest_nav = to_nav
-            fund.last_nav_update = transaction_data.transaction_date
-            fund.current_value = fund.total_units * fund.latest_nav
-            fund.updated_at = datetime.now(timezone.utc)
+            fund.latest_nav = to_nav  # type: ignore
+            fund.last_nav_update = transaction_data.transaction_date  # type: ignore
+            fund.current_value = fund.total_units * fund.latest_nav  # type: ignore
+            fund.updated_at = datetime.now(timezone.utc)  # type: ignore
             db.commit()
 
             total_amount = to_units * to_nav # This is the market value of units received
@@ -343,7 +343,7 @@ def update_mf_transaction(
         )
 
     if update_data.notes is not None:
-        db_transaction.notes = update_data.notes
+        db_transaction.notes = update_data.notes  # type: ignore
         # Also update the linked financial transaction if it exists
         # The financial transaction notes are auto-generated and should not be updated here.
 
@@ -359,7 +359,7 @@ def update_mf_transaction_linked_id(db: Session, mf_transaction_id: int, linked_
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="MF transaction not found"
         )
-    db_transaction.linked_transaction_id = linked_id
+    db_transaction.linked_transaction_id = linked_id  # type: ignore
     db.commit()
     db.refresh(db_transaction)
     return db_transaction
@@ -375,42 +375,42 @@ def delete_mf_transaction(db: Session, mf_transaction_id: int) -> None:
 
     from app.repositories.mutual_fund_crud import get_mutual_fund_by_id, update_mutual_fund_balances
 
-    fund = get_mutual_fund_by_id(db, db_transaction.mutual_fund_id)
+    fund = get_mutual_fund_by_id(db, db_transaction.mutual_fund_id)  # type: ignore
     if not fund:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Mutual fund not found for transaction"
         )
 
     # Reverse the fund balance changes based on transaction type
-    if db_transaction.transaction_type == "buy":
+    if db_transaction.transaction_type == "buy":  # type: ignore
         units_change = -db_transaction.units
         amount_change = -db_transaction.amount_excluding_charges
-        update_mutual_fund_balances(db, fund.mutual_fund_id, units_change, float(amount_change))
-        fund.total_invested_cash -= db_transaction.amount_excluding_charges
-        fund.external_cash_invested -= db_transaction.amount_excluding_charges
-    elif db_transaction.transaction_type == "sell":
+        update_mutual_fund_balances(db, fund.mutual_fund_id, units_change, float(amount_change))  # type: ignore
+        fund.total_invested_cash -= db_transaction.amount_excluding_charges  # type: ignore
+        fund.external_cash_invested -= db_transaction.amount_excluding_charges  # type: ignore
+    elif db_transaction.transaction_type == "sell":  # type: ignore
         units_change = db_transaction.units
         amount_change = db_transaction.cost_basis_of_units_sold
-        update_mutual_fund_balances(db, fund.mutual_fund_id, units_change, float(amount_change))
-        if db_transaction.realized_gain:
-            fund.total_realized_gain -= db_transaction.realized_gain
-        fund.total_invested_cash += db_transaction.cost_basis_of_units_sold
-        fund.external_cash_invested += db_transaction.cost_basis_of_units_sold
-    elif db_transaction.transaction_type == "switch_out":
+        update_mutual_fund_balances(db, fund.mutual_fund_id, units_change, float(amount_change))  # type: ignore
+        if db_transaction.realized_gain:  # type: ignore
+            fund.total_realized_gain -= db_transaction.realized_gain  # type: ignore
+        fund.total_invested_cash += db_transaction.cost_basis_of_units_sold  # type: ignore
+        fund.external_cash_invested += db_transaction.cost_basis_of_units_sold  # type: ignore
+    elif db_transaction.transaction_type == "switch_out":  # type: ignore
         units_change = db_transaction.units
         amount_change = db_transaction.cost_basis_of_units_sold
-        update_mutual_fund_balances(db, fund.mutual_fund_id, units_change, float(amount_change))
-        if db_transaction.realized_gain:
-            fund.total_realized_gain -= db_transaction.realized_gain
-        fund.total_invested_cash += db_transaction.cost_basis_of_units_sold
-    elif db_transaction.transaction_type == "switch_in":
+        update_mutual_fund_balances(db, fund.mutual_fund_id, units_change, float(amount_change))  # type: ignore
+        if db_transaction.realized_gain:  # type: ignore
+            fund.total_realized_gain -= db_transaction.realized_gain  # type: ignore
+        fund.total_invested_cash += db_transaction.cost_basis_of_units_sold  # type: ignore
+    elif db_transaction.transaction_type == "switch_in":  # type: ignore
         units_change = -db_transaction.units
-        amount_change = -db_transaction.cost_basis_of_units_sold
-        update_mutual_fund_balances(db, fund.mutual_fund_id, units_change, float(amount_change))
-        fund.total_invested_cash -= db_transaction.cost_basis_of_units_sold
+        amount_change = -(db_transaction.cost_basis_of_units_sold or 0)
+        update_mutual_fund_balances(db, fund.mutual_fund_id, units_change, float(amount_change))  # type: ignore
+        fund.total_invested_cash -= db_transaction.cost_basis_of_units_sold  # type: ignore
 
     # For switch transactions, revert NAV to the most recent remaining transaction
-    if db_transaction.transaction_type in ["switch_out", "switch_in"]:
+    if db_transaction.transaction_type in ["switch_out", "switch_in"]:  # type: ignore[reportGeneralTypeIssues]
         # Find the most recent transaction for this fund (excluding the one being deleted)
         latest_transaction = (
             db.query(MfTransaction)
@@ -423,47 +423,47 @@ def delete_mf_transaction(db: Session, mf_transaction_id: int) -> None:
         )
 
         if latest_transaction:
-            fund.latest_nav = latest_transaction.nav_per_unit
-            fund.last_nav_update = latest_transaction.transaction_date
+            fund.latest_nav = latest_transaction.nav_per_unit  # type: ignore
+            fund.last_nav_update = latest_transaction.transaction_date  # type: ignore
         else:
             # If no transactions remain, reset NAV to 0 or keep current value
-            fund.latest_nav = fund.average_cost_per_unit if fund.total_units > 0 else 0
-            fund.last_nav_update = None
+            fund.latest_nav = fund.average_cost_per_unit if fund.total_units > 0 else 0  # type: ignore
+            fund.last_nav_update = None  # type: ignore
 
-        fund.current_value = fund.total_units * fund.latest_nav
-        fund.updated_at = datetime.now(timezone.utc)
+        fund.current_value = fund.total_units * fund.latest_nav  # type: ignore
+        fund.updated_at = datetime.now(timezone.utc)  # type: ignore
 
     # Delete financial transaction and update account balance
-    if db_transaction.financial_transaction_id:
+    if db_transaction.financial_transaction_id:  # type: ignore
         financial_transaction = db.query(Transaction).filter(Transaction.transaction_id == db_transaction.financial_transaction_id).first()
         if financial_transaction:
             account = financial_transaction.account
-            if account:
-                amount = financial_transaction.credit if financial_transaction.credit > 0 else financial_transaction.debit
-                if db_transaction.transaction_type == "buy":
+            if account:  # type: ignore
+                amount = financial_transaction.credit if financial_transaction.credit > 0 else financial_transaction.debit  # type: ignore
+                if db_transaction.transaction_type == "buy":  # type: ignore[reportGeneralTypeIssues]
                     # Buy transaction originally debited the account, so when deleting we need to credit it back
-                    account.balance += amount
-                    account.net_balance += amount
-                elif db_transaction.transaction_type == "sell":
+                    account.balance += amount  # type: ignore
+                    account.net_balance += amount  # type: ignore
+                elif db_transaction.transaction_type == "sell":  # type: ignore[reportGeneralTypeIssues]
                     # Sell transaction originally credited the account, so when deleting we need to debit it back
-                    account.balance -= amount
-                    account.net_balance -= amount
+                    account.balance -= amount  # type: ignore
+                    account.net_balance -= amount  # type: ignore
             db.delete(financial_transaction)
 
     # Delete linked charge transaction if it exists
-    if db_transaction.linked_charge_transaction_id:
+    if db_transaction.linked_charge_transaction_id:  # type: ignore
         charge_transaction = db.query(Transaction).filter(Transaction.transaction_id == db_transaction.linked_charge_transaction_id).first()
         if charge_transaction:
             account = charge_transaction.account
             if account:
                 # Charge transactions are always debits (expenses), so when deleting we credit back
                 amount = charge_transaction.debit
-                account.balance += amount
-                account.net_balance += amount
+                account.balance += amount  # type: ignore
+                account.net_balance += amount  # type: ignore
             db.delete(charge_transaction)
 
     # If it's a switch transaction, delete the linked transaction as well
-    if db_transaction.linked_transaction_id:
+    if db_transaction.linked_transaction_id:  # type: ignore
         # Find the linked transaction using the linked_transaction_id from the current transaction
         linked_transaction = db.query(MfTransaction).filter(MfTransaction.mf_transaction_id == db_transaction.linked_transaction_id).first()
         if linked_transaction:
@@ -471,24 +471,25 @@ def delete_mf_transaction(db: Session, mf_transaction_id: int) -> None:
             # instead of recursively calling delete_mf_transaction. This ensures the fund balances are reversed once.
             # The current transaction's linked_transaction_id points to the other side of the switch.
             # We need to reverse the linked transaction's impact on its fund.
-            linked_fund = get_mutual_fund_by_id(db, linked_transaction.mutual_fund_id)
+            linked_fund = get_mutual_fund_by_id(db, linked_transaction.mutual_fund_id)  # type: ignore
             if not linked_fund:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND, detail="Linked mutual fund not found for transaction"
                 )
 
-            if linked_transaction.transaction_type == "switch_out":
+            # type: ignore
+            if linked_transaction.transaction_type == "switch_out":  # type: ignore[reportGeneralTypeIssues]
                 linked_units_change = linked_transaction.units
                 linked_amount_change = linked_transaction.cost_basis_of_units_sold
-                update_mutual_fund_balances(db, linked_fund.mutual_fund_id, linked_units_change, float(linked_amount_change))
-                if linked_transaction.realized_gain:
-                    linked_fund.total_realized_gain -= linked_transaction.realized_gain
-                linked_fund.total_invested_cash += linked_transaction.cost_basis_of_units_sold
-            elif linked_transaction.transaction_type == "switch_in":
+                update_mutual_fund_balances(db, linked_fund.mutual_fund_id, linked_units_change, float(linked_amount_change))  # type: ignore
+                if linked_transaction.realized_gain:  # type: ignore
+                    linked_fund.total_realized_gain -= linked_transaction.realized_gain  # type: ignore
+                linked_fund.total_invested_cash += linked_transaction.cost_basis_of_units_sold  # type: ignore
+            elif linked_transaction.transaction_type == "switch_in":  # type: ignore
                 linked_units_change = -linked_transaction.units
-                linked_amount_change = -linked_transaction.cost_basis_of_units_sold
-                update_mutual_fund_balances(db, linked_fund.mutual_fund_id, linked_units_change, float(linked_amount_change))
-                linked_fund.total_invested_cash -= linked_transaction.cost_basis_of_units_sold
+                linked_amount_change = -(linked_transaction.cost_basis_of_units_sold or 0)
+                update_mutual_fund_balances(db, linked_fund.mutual_fund_id, linked_units_change, float(linked_amount_change))  # type: ignore
+                linked_fund.total_invested_cash -= linked_transaction.cost_basis_of_units_sold  # type: ignore
             
             db.delete(linked_transaction)
 
