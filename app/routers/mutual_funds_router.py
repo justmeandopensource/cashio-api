@@ -35,6 +35,7 @@ from app.schemas import mutual_funds_schema, user_schema
 from sqlalchemy import func, extract
 from app.security.user_security import get_current_user
 from app.services.nav_service import NavService
+from app.utils.xirr_calculator import calculate_xirr
 
 mutual_funds_router = APIRouter(prefix="/ledger")
 
@@ -188,6 +189,21 @@ def get_mutual_funds(
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     funds = get_mutual_funds_by_ledger_id(db=db, ledger_id=ledger_id)
+
+    # Calculate XIRR for each fund
+    current_date = datetime.now()
+    for fund in funds:
+        transactions = get_mf_transactions_by_fund_id(db=db, mutual_fund_id=fund.mutual_fund_id)
+        tx_data = [
+            {
+                'transaction_date': tx.transaction_date,
+                'transaction_type': tx.transaction_type,
+                'amount_excluding_charges': float(tx.amount_excluding_charges)
+            }
+            for tx in transactions
+        ]
+        fund.xirr_percentage = calculate_xirr(tx_data, float(fund.current_value), current_date)
+
     return funds
 
 
