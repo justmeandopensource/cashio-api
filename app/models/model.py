@@ -344,6 +344,8 @@ class MutualFund(Base):
     external_cash_invested: Mapped[Decimal] = mapped_column(
         Numeric(15, 4), default=0, nullable=False
     )  # Total cash invested from external sources (excluding switches)
+    asset_class: Mapped[str | None] = mapped_column(String(50), nullable=True)  # Equity, Debt, Hybrid, Others
+    asset_sub_class: Mapped[str | None] = mapped_column(String(50), nullable=True)  # Sub-classification within asset class
     notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))

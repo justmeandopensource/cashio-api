@@ -21,6 +21,8 @@ def create_mutual_fund(
             plan=fund.plan,
             code=fund.code,
             owner=fund.owner,
+            asset_class=fund.asset_class,
+            asset_sub_class=fund.asset_sub_class,
             notes=fund.notes,
         )
 
