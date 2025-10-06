@@ -211,8 +211,14 @@ class BulkNavFetchResponse(BaseModel, str_strip_whitespace=True):
     total_failed: int
 
 
+class BulkNavUpdateItem(BaseModel, str_strip_whitespace=True):
+    mutual_fund_id: int
+    latest_nav: Decimal
+    nav_date: str # Assuming date comes as a string from frontend
+
+
 class BulkNavUpdateRequest(BaseModel, str_strip_whitespace=True):
-    updates: list[dict] = Field(..., description="List of {mutual_fund_id: int, latest_nav: Decimal}")
+    updates: list[BulkNavUpdateItem]
 
 
 class BulkNavUpdateResponse(BaseModel, str_strip_whitespace=True):

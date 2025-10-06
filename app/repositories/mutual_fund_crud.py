@@ -148,12 +148,12 @@ def update_mutual_fund_balances(
 
 
 def bulk_update_mutual_fund_navs(
-    db: Session, nav_updates: list[dict]
+    db: Session, nav_updates: list[mutual_funds_schema.BulkNavUpdateItem]
 ) -> list[int]:
     """Bulk update NAV for multiple mutual funds.
 
     Args:
-        nav_updates: List of dicts with 'mutual_fund_id' and 'latest_nav' keys
+        nav_updates: List of BulkNavUpdateItem objects
 
     Returns:
         List of mutual_fund_ids that were successfully updated
@@ -162,8 +162,12 @@ def bulk_update_mutual_fund_navs(
 
     for update_data in nav_updates:
         try:
-            mutual_fund_id = update_data['mutual_fund_id']
-            latest_nav = Decimal(str(update_data['latest_nav']))
+            mutual_fund_id = update_data.mutual_fund_id
+            latest_nav = update_data.latest_nav
+            nav_date_str = update_data.nav_date
+
+            # Convert nav_date string to datetime object
+            nav_date = datetime.strptime(nav_date_str, "%d-%m-%Y").replace(tzinfo=timezone.utc)
 
             db_fund = db.query(MutualFund).filter(
                 MutualFund.mutual_fund_id == mutual_fund_id
@@ -173,10 +177,10 @@ def bulk_update_mutual_fund_navs(
                 continue  # Skip if fund not found
 
             # Update NAV and recalculate current value
-            db_fund.latest_nav = latest_nav  # type: ignore[reportAttributeAccessIssue]
-            db_fund.last_nav_update = datetime.now(timezone.utc)  # type: ignore[reportAttributeAccessIssue]
-            db_fund.current_value = db_fund.total_units * latest_nav  # type: ignore[reportAttributeAccessIssue]
-            db_fund.updated_at = datetime.now(timezone.utc)  # type: ignore[reportAttributeAccessIssue]  # type: ignore[reportAttributeAccessIssue]
+            db_fund.latest_nav = latest_nav
+            db_fund.last_nav_update = nav_date
+            db_fund.current_value = db_fund.total_units * latest_nav
+            db_fund.updated_at = datetime.now(timezone.utc)
 
             updated_ids.append(mutual_fund_id)
 

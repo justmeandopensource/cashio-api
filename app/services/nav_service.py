@@ -22,7 +22,7 @@ class NavService:
         """Fetch NAV data for a single scheme code."""
         try:
             async with httpx.AsyncClient(timeout=NavService.TIMEOUT) as client:
-                url = f"{NavService.BASE_URL}/mf/{scheme_code}"
+                url = f"{NavService.BASE_URL}/mf/{scheme_code}/latest"
                 response = await client.get(url)
 
                 if response.status_code == 404:
@@ -44,14 +44,14 @@ class NavService:
                         error_message="No NAV data available",
                     )
 
-                latest_nav = nav_data[0]  # Most recent NAV is first
+                latest_nav_entry = nav_data[0]  # The 'latest' endpoint returns a list with one entry
                 fund_name = data.get("meta", {}).get("scheme_name", "")
 
                 return NavFetchResult(
                     scheme_code=scheme_code,
                     fund_name=fund_name,
-                    nav_value=float(latest_nav.get("nav", 0)),
-                    nav_date=latest_nav.get("date"),
+                    nav_value=float(latest_nav_entry.get("nav", 0)),
+                    nav_date=latest_nav_entry.get("date"),
                     success=True,
                 )
 

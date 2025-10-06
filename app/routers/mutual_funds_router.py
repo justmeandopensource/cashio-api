@@ -656,7 +656,7 @@ def bulk_update_nav(
 
     try:
         # Validate that all funds belong to this ledger
-        fund_ids = [update['mutual_fund_id'] for update in request.updates]
+        fund_ids = [update.mutual_fund_id for update in request.updates]
         funds = db.query(MutualFund).filter(
             MutualFund.mutual_fund_id.in_(fund_ids),
             MutualFund.ledger_id == ledger_id
