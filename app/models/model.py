@@ -44,6 +44,8 @@ class Ledger(Base):
     description: Mapped[str | None] = mapped_column(String(100), nullable=True)
     currency_symbol: Mapped[str] = mapped_column(String(10), nullable=False)
     notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    nav_service_type: Mapped[str] = mapped_column(Enum("india", "uk", name="nav_service_type"), default="india", nullable=False)
+    api_key: Mapped[str | None] = mapped_column(String(100), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
 

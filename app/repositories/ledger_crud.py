@@ -29,6 +29,8 @@ def create_ledger(db: Session, user_id: int, ledger: LedgerCreate):
         currency_symbol=ledger.currency_symbol,
         description=ledger.description,
         notes=ledger.notes,
+        nav_service_type=ledger.nav_service_type,
+        api_key=ledger.api_key,
     )
 
     db.add(db_ledger)
@@ -88,6 +90,12 @@ def update_ledger(
 
     if ledger_update.notes is not None:
         db_ledger.notes = ledger_update.notes
+
+    if ledger_update.nav_service_type is not None:
+        db_ledger.nav_service_type = ledger_update.nav_service_type
+
+    if ledger_update.api_key is not None:
+        db_ledger.api_key = ledger_update.api_key
 
     db_ledger.updated_at = datetime.now()
 

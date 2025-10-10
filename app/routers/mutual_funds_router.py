@@ -35,6 +35,7 @@ from app.schemas import mutual_funds_schema, user_schema
 from sqlalchemy import func, extract
 from app.security.user_security import get_current_user
 from app.services.nav_service import NavService
+from app.services.uk_nav_service import UkNavService
 from app.utils.xirr_calculator import calculate_xirr
 
 mutual_funds_router = APIRouter(prefix="/ledger")
@@ -616,8 +617,17 @@ def bulk_fetch_nav(
         raise HTTPException(status_code=404, detail="Ledger not found")
 
     try:
-        # Fetch NAV data for all scheme codes
-        results = NavService.fetch_nav_bulk_sync(request.scheme_codes)
+        # Choose the appropriate NAV service based on ledger configuration
+        if ledger.nav_service_type == "uk":  # type: ignore
+            if not ledger.api_key:  # type: ignore
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="API key is required for UK mutual fund service"
+                )
+            results = UkNavService.fetch_nav_bulk_sync(ledger.api_key, request.scheme_codes)  # type: ignore
+        else:
+            # Default to Indian service
+            results = NavService.fetch_nav_bulk_sync(request.scheme_codes)
 
         # Calculate summary stats
         total_requested = len(request.scheme_codes)
