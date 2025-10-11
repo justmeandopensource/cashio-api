@@ -302,6 +302,7 @@ class Amc(Base):
     name: Mapped[str] = mapped_column(String(100), nullable=False)  # "HDFC", "ICICI", "SBI"
     notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
 
     ledger = relationship("Ledger", back_populates="amcs")
     mutual_funds = relationship("MutualFund", back_populates="amc")

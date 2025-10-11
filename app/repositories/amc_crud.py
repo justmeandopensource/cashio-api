@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
@@ -53,6 +54,7 @@ def update_amc(
     try:
         for field, value in update_data.items():
             setattr(db_amc, field, value)
+        db_amc.updated_at = datetime.now(timezone.utc)
         db.commit()
         db.refresh(db_amc)
         return db_amc
