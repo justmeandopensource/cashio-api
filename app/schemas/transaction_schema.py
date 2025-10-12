@@ -37,6 +37,8 @@ class TransactionCreate(BaseModel):
     debit: float = 0.00
     date: datetime
     notes: Optional[str] = None
+    store: Optional[str] = None
+    location: Optional[str] = None
     is_transfer: bool
     transfer_id: Optional[str]
     transfer_type: Optional[str]
@@ -61,6 +63,8 @@ class TransactionUpdate(BaseModel):
     debit: Optional[float] = None
     date: Optional[datetime] = None
     notes: Optional[str] = None
+    store: Optional[str] = None
+    location: Optional[str] = None
     is_split: Optional[bool] = None
     is_asset_transaction: Optional[bool] = None
     splits: Optional[List[TransactionSplitUpdate]] = None
@@ -77,6 +81,8 @@ class Transaction(BaseModel, str_strip_whitespace=True):
     debit: float
     date: datetime
     notes: Optional[str]
+    store: Optional[str]
+    location: Optional[str]
     is_split: bool
     is_transfer: bool
     is_asset_transaction: bool

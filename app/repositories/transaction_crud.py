@@ -43,6 +43,8 @@ def get_transactions_for_account_id(
             "debit": transaction.debit,
             "date": transaction.date,
             "notes": transaction.notes,
+            "store": transaction.store,
+            "location": transaction.location,
             "is_split": transaction.is_split,
             "is_transfer": transaction.is_transfer,
             "is_asset_transaction": transaction.is_asset_transaction,
@@ -110,6 +112,8 @@ def create_transaction(db: Session, transaction: TransactionCreate):
         debit=debit,
         date=transaction.date,
         notes=transaction.notes,
+        store=transaction.store,
+        location=transaction.location,
         is_split=transaction.is_split,
         is_transfer=transaction.is_transfer,
         is_asset_transaction=transaction.is_asset_transaction,
@@ -556,6 +560,44 @@ def get_transaction_notes_suggestions(
 
     return [suggestion[0] for suggestion in suggestions]
 
+
+def get_transaction_store_suggestions(
+    db: Session, ledger_id: int, search_text: str, limit: int = 5
+) -> List[str]:
+    suggestions = (
+        db.query(Transaction.store)
+        .filter(Transaction.store.ilike(f"%{search_text}%"))
+        .filter(
+            Transaction.account_id.in_(
+                db.query(Account.account_id).filter(Account.ledger_id == ledger_id)
+            )
+        )
+        .order_by(Transaction.date.desc())
+        .limit(limit)
+        .all()
+    )
+
+    return [suggestion[0] for suggestion in suggestions]
+
+
+def get_transaction_location_suggestions(
+    db: Session, ledger_id: int, search_text: str, limit: int = 5
+) -> List[str]:
+    suggestions = (
+        db.query(Transaction.location)
+        .filter(Transaction.location.ilike(f"%{search_text}%"))
+        .filter(
+            Transaction.account_id.in_(
+                db.query(Account.account_id).filter(Account.ledger_id == ledger_id)
+            )
+        )
+        .order_by(Transaction.date.desc())
+        .limit(limit)
+        .all()
+    )
+
+    return [suggestion[0] for suggestion in suggestions]
+
 def get_transactions_for_ledger_id(
     db: Session,
     ledger_id: int,
@@ -569,6 +611,8 @@ def get_transactions_for_ledger_id(
     tags_match: Optional[str] = "any",
     search_text: Optional[str] = None,
     transaction_type: Optional[str] = None,
+    store: Optional[str] = None,
+    location: Optional[str] = None,
 ):
     query = (
         db.query(Transaction)
@@ -605,6 +649,10 @@ def get_transactions_for_ledger_id(
             query = query.filter(Transaction.is_transfer == True)
     if account_id:  # Add this filter
         query = query.filter(Transaction.account_id == account_id)
+    if store:
+        query = query.filter(Transaction.store.ilike(f"%{store}%"))
+    if location:
+        query = query.filter(Transaction.location.ilike(f"%{location}%"))
 
     transactions = query.order_by(Transaction.date.desc()).offset(offset).limit(limit).all()
 
@@ -620,6 +668,8 @@ def get_transactions_for_ledger_id(
             "debit": transaction.debit,
             "date": transaction.date,
             "notes": transaction.notes,
+            "store": transaction.store,
+            "location": transaction.location,
             "is_split": transaction.is_split,
             "is_transfer": transaction.is_transfer,
             "is_asset_transaction": transaction.is_asset_transaction,
@@ -648,6 +698,8 @@ def get_transactions_count_for_ledger_id(
     tags_match: Optional[str] = "any",
     search_text: Optional[str] = None,
     transaction_type: Optional[str] = None,
+    store: Optional[str] = None,
+    location: Optional[str] = None,
 ):
     query = (
         db.query(Transaction)
@@ -683,6 +735,10 @@ def get_transactions_count_for_ledger_id(
             query = query.filter(Transaction.is_transfer == True)
     if account_id:  # Add this filter
         query = query.filter(Transaction.account_id == account_id)
+    if store:
+        query = query.filter(Transaction.store.ilike(f"%{store}%"))
+    if location:
+        query = query.filter(Transaction.location.ilike(f"%{location}%"))
 
     return query.count()
 

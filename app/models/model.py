@@ -127,6 +127,8 @@ class Transaction(Base):
     debit: Mapped[Decimal] = mapped_column(Numeric(15, 2), default=0.00, nullable=False)
     date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    store: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    location: Mapped[str | None] = mapped_column(String(200), nullable=True)
     is_split: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_transfer: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_asset_transaction: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

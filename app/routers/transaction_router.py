@@ -86,6 +86,8 @@ def get_transaction_by_id(
         "debit": transaction.debit,
         "date": transaction.date,
         "notes": transaction.notes,
+        "store": transaction.store,
+        "location": transaction.location,
         "is_split": transaction.is_split,
         "is_transfer": transaction.is_transfer,
         "is_asset_transaction": transaction.is_asset_transaction,
@@ -344,6 +346,58 @@ def get_note_suggestions(
 
 
 @transaction_Router.get(
+    "/{ledger_id}/transaction/store/suggestions",
+    response_model=List[str],
+    tags=["transactions"],
+)
+def get_store_suggestions(
+    ledger_id: int,
+    search_text: str = Query(
+        ..., min_length=3, description="Text to search for in transaction store"
+    ),
+    user: user_schema.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # Ensure the ledger belongs to the user
+    ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
+        raise HTTPException(status_code=404, detail="Ledger not found")
+
+    # Fetch the suggestions
+    suggestions = transaction_crud.get_transaction_store_suggestions(
+        db=db, ledger_id=ledger_id, search_text=search_text
+    )
+
+    return suggestions
+
+
+@transaction_Router.get(
+    "/{ledger_id}/transaction/location/suggestions",
+    response_model=List[str],
+    tags=["transactions"],
+)
+def get_location_suggestions(
+    ledger_id: int,
+    search_text: str = Query(
+        ..., min_length=3, description="Text to search for in transaction location"
+    ),
+    user: user_schema.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # Ensure the ledger belongs to the user
+    ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
+        raise HTTPException(status_code=404, detail="Ledger not found")
+
+    # Fetch the suggestions
+    suggestions = transaction_crud.get_transaction_location_suggestions(
+        db=db, ledger_id=ledger_id, search_text=search_text
+    )
+
+    return suggestions
+
+
+@transaction_Router.get(
     "/{ledger_id}/transactions",
     response_model=transaction_schema.PaginatedTransactionResponse,
     tags=["transactions"],
@@ -376,6 +430,12 @@ def get_transactions_by_ledger(
     transaction_type: Optional[str] = Query(
         None, description="Filter transactions by type (income/expense/transfer)"
     ),
+    store: Optional[str] = Query(
+        None, description="Filter transactions by store name"
+    ),
+    location: Optional[str] = Query(
+        None, description="Filter transactions by location"
+    ),
     user: user_schema.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -398,6 +458,8 @@ def get_transactions_by_ledger(
         tags_match=tags_match,
         search_text=search_text,
         transaction_type=transaction_type,
+        store=store,
+        location=location,
     )
 
     total_transactions = transaction_crud.get_transactions_count_for_ledger_id(
@@ -411,6 +473,8 @@ def get_transactions_by_ledger(
         tags_match=tags_match,
         search_text=search_text,
         transaction_type=transaction_type,
+        store=store,
+        location=location,
     )
 
     total_pages = (total_transactions + per_page - 1) // per_page
