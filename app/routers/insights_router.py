@@ -14,6 +14,30 @@ from app.repositories.insights import (
 )
 from app.schemas import insights_schema, user_schema
 from app.schemas.insights import category_trend_schema, tag_trend_schema
+
+# Store location schemas
+from typing import List
+from pydantic import BaseModel
+
+class StoreExpenseData(BaseModel):
+    store: str
+    amount: float
+    percentage: float
+
+class LocationExpenseData(BaseModel):
+    location: str
+    amount: float
+    percentage: float
+
+class ExpenseByStoreResponse(BaseModel):
+    store_data: List[StoreExpenseData]
+    total_expense: float
+    period_type: str
+
+class ExpenseByLocationResponse(BaseModel):
+    location_data: List[LocationExpenseData]
+    total_expense: float
+    period_type: str
 from app.security.user_security import get_current_user
 
 insights_router = APIRouter(prefix="/ledger/{ledger_id}/insights", tags=["insights"])
@@ -155,4 +179,72 @@ def get_tag_trend(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error generating tag trend: {str(e)}",
+        )
+
+
+@insights_router.get(
+    "/expense-by-store",
+    response_model=ExpenseByStoreResponse,
+)
+def get_expense_by_store_route(
+    ledger_id: int,
+    period_type: Literal[
+        "all_time", "last_12_months", "this_month"
+    ] = Query(
+        default="all_time",
+        description="Type of period to analyze: all_time, last_12_months, or this_month",
+    ),
+    user: user_schema.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.repositories.insights.store_location_crud import get_expense_by_store
+
+    ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Ledger not found"
+        )
+
+    try:
+        return get_expense_by_store(
+            db=db, ledger_id=ledger_id, period_type=period_type
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error generating expense by store insights: {str(e)}",
+        )
+
+
+@insights_router.get(
+    "/expense-by-location",
+    response_model=ExpenseByLocationResponse,
+)
+def get_expense_by_location_route(
+    ledger_id: int,
+    period_type: Literal[
+        "all_time", "last_12_months", "this_month"
+    ] = Query(
+        default="all_time",
+        description="Type of period to analyze: all_time, last_12_months, or this_month",
+    ),
+    user: user_schema.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.repositories.insights.store_location_crud import get_expense_by_location
+
+    ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Ledger not found"
+        )
+
+    try:
+        return get_expense_by_location(
+            db=db, ledger_id=ledger_id, period_type=period_type
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error generating expense by location insights: {str(e)}",
         )
