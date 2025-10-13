@@ -38,6 +38,15 @@ class ExpenseByLocationResponse(BaseModel):
     location_data: List[LocationExpenseData]
     total_expense: float
     period_type: str
+
+class ExpenseCalendarData(BaseModel):
+    date: str
+    amount: float
+
+class ExpenseCalendarResponse(BaseModel):
+    expenses: List[ExpenseCalendarData]
+    total_expense: float
+
 from app.security.user_security import get_current_user
 
 insights_router = APIRouter(prefix="/ledger/{ledger_id}/insights", tags=["insights"])
@@ -247,4 +256,33 @@ def get_expense_by_location_route(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error generating expense by location insights: {str(e)}",
+        )
+
+
+@insights_router.get(
+    "/expense-calendar",
+    response_model=ExpenseCalendarResponse,
+)
+def get_expense_calendar_route(
+    ledger_id: int,
+    year: int = Query(..., description="Year to analyze", ge=2000, le=2100),
+    user: user_schema.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.repositories.insights.expense_calendar_crud import get_expense_calendar
+
+    ledger = ledger_crud.get_ledger_by_id(db=db, ledger_id=ledger_id)
+    if ledger is None or ledger.user_id != user.user_id:  # type: ignore
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Ledger not found"
+        )
+
+    try:
+        return get_expense_calendar(
+            db=db, ledger_id=ledger_id, year=year
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error generating expense calendar insights: {str(e)}",
         )
