@@ -34,9 +34,7 @@ def get_income_expense_trend(
         (func.sum(Transaction.debit) - func.sum(Transaction.credit)).label(
             "expense"
         ),
-    ).select_from(
-        Transaction.join(Account, Transaction.account_id == Account.account_id).join(Category, Transaction.category_id == Category.category_id)
-    ).where(
+    ).select_from(Transaction).join(Account, Transaction.account_id == Account.account_id).join(Category, Transaction.category_id == Category.category_id).where(
         and_(
             Account.ledger_id == ledger_id,
             Transaction.is_split == False,
@@ -51,11 +49,7 @@ def get_income_expense_trend(
         (
             func.sum(TransactionSplit.debit) - func.sum(TransactionSplit.credit)
         ).label("expense"),
-    ).select_from(
-        TransactionSplit.join(
-            Transaction, TransactionSplit.transaction_id == Transaction.transaction_id
-        ).join(Account, Transaction.account_id == Account.account_id).join(Category, TransactionSplit.category_id == Category.category_id)
-    ).where(
+    ).select_from(TransactionSplit).join(Transaction, TransactionSplit.transaction_id == Transaction.transaction_id).join(Account, Transaction.account_id == Account.account_id).join(Category, TransactionSplit.category_id == Category.category_id).where(
         and_(
             Account.ledger_id == ledger_id,
             Transaction.is_split == True,
